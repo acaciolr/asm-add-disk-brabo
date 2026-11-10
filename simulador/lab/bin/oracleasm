@@ -1,0 +1,27 @@
+#!/bin/bash
+# Simulador ASM ADD DISK BRABO — comando FALSO (lê/grava /sim/mundo). by • DBA BRABO
+. /sim/lab/lib.sh
+L=$M/asmlib.tsv; touch "$L"
+case ${1:-} in
+  status)
+    if [[ -f $M/asmlib_parado ]]; then echo "Checking if ASM is loaded: no"; echo "Checking if /dev/oracleasm is mounted: no"
+    else echo "Checking if ASM is loaded: yes"; echo "Checking if /dev/oracleasm is mounted: yes"; fi ;;
+  listdisks) cut -d'|' -f1 "$L" | sort ;;
+  scandisks) echo "Reloading disk partitions: done"; echo "Cleaning any stale ASM disks..."; echo "Scanning system for ASM disks..." ;;
+  querydisk)
+    if [[ ${2:-} == -p ]]; then
+      k=$(awk -F'|' -v l="$3" '$1==l{print $2}' "$L")
+      [[ -n $k ]] || { echo "Disk \"$3\" does not exist or is not instantiated"; exit 1; }
+      echo "Disk \"$3\" is a valid ASM disk"; echo "/dev/$k: LABEL=\"$3\" TYPE=\"oracleasm\""
+    else
+      k=$(kname_de "$2"); l=$(awk -F'|' -v k="$k" '$2==k{print $1}' "$L")
+      if [[ -n $l ]]; then echo "Device \"$2\" is marked an ASM disk with the label \"$l\""; else echo "Device \"$2\" is not marked as an ASM disk"; fi
+    fi ;;
+  createdisk)
+    k=$(kname_de "$3"); mm=$(dev_campo "$k" 3)
+    echo "$2|$k" >> "$L"; mkdir -p /dev/oracleasm/disks
+    mknod "/dev/oracleasm/disks/$2" b "${mm%:*}" "${mm#*:}"; chown grid:asmadmin "/dev/oracleasm/disks/$2"; chmod 660 "/dev/oracleasm/disks/$2"
+    echo "Writing disk header: done"; echo "Instantiating disk: done" ;;
+  deletedisk) awk -F'|' -v l="$2" '$1!=l' "$L" > "$L.t" && mv "$L.t" "$L"; rm -f "/dev/oracleasm/disks/$2"; echo "Clearing disk header: done"; echo "Dropping disk: done" ;;
+  *) echo "Usage: oracleasm [--exec-path=<exec_path>] <command> [ <args> ]"; exit 1 ;;
+esac

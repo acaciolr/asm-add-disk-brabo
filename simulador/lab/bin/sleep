@@ -1,0 +1,5 @@
+#!/bin/bash
+# Simulador ASM ADD DISK BRABO — comando FALSO (lê/grava /sim/mundo). by • DBA BRABO
+. /sim/lab/lib.sh
+s=${1%%[!0-9]*}; o=$(cat "$M/relogio_off" 2>/dev/null || echo 0); echo $(( o + ${s:-0} )) > "$M/relogio_off"
+exit 0

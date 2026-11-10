@@ -1,0 +1,14 @@
+#!/bin/bash
+# Simulador ASM ADD DISK BRABO — binário FALSO do Grid Home (lê/grava /sim/mundo). by • DBA BRABO
+. /sim/lab/lib.sh
+k=$(kname_de "$2"); h=$(awk -F'|' -v k="$k" '$1==k' "$M/cabecalhos.tsv" 2>/dev/null)
+if [[ -z $h ]]; then
+  echo "kfbh.endian:                          0 ; 0x000: 0x00"
+  echo "kfbh.type:                            0 ; 0x002: KFBTYP_INVALID"
+  exit 0
+fi
+IFS='|' read -r _ st g <<<"$h"
+echo "kfbh.endian:                          1 ; 0x000: 0x01"
+echo "kfbh.type:                            1 ; 0x002: KFBTYP_DISKHEAD"
+printf 'kfdhdb.grpname:%25s ; 0x048: length=%d\n' "$g" "${#g}"
+echo "kfdhdb.hdrsts:                        3 ; 0x027: KFDHDR_$st"

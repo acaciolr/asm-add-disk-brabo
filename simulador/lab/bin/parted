@@ -1,0 +1,12 @@
+#!/bin/bash
+# Simulador ASM ADD DISK BRABO — comando FALSO (lê/grava /sim/mundo). by • DBA BRABO
+. /sim/lab/lib.sh
+dev=""; for a; do [[ $a == /dev/* ]] && dev=$a; done
+k=$(kname_de "$dev"); dev_existe "$k" || { echo "Error: Could not stat device $dev" >&2; exit 1; }
+dev_set "$k" 8 gpt
+[[ $(dev_campo "$k" 2) == mpath ]] && exit 0      # no multipath quem cria o mapa da partição é o kpartx
+[[ $k =~ [0-9]$ ]] && p=${k}p1 || p=${k}1
+dev_existe "$p" && exit 0
+mm=$(dev_campo "$k" 3); ma=${mm%:*}; mi=${mm#*:}; b=$(dev_campo "$k" 4)
+echo "$p|part|$ma:$((mi+1))|$((b-2097152))|$(dev_campo "$k" 5)|$k|||||||" >> "$M/devices.tsv"
+mknod "/dev/$p" b "$ma" "$((mi+1))"; chgrp disk "/dev/$p"; chmod 660 "/dev/$p"; sysfs_dev "$p"

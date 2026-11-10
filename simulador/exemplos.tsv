@@ -1,0 +1,37 @@
+nº|cenário|respostas|título|comando
+1|rac-asmlib||Ver o que seria feito (dry-run) para um disco no DATA|./asm_add_disk_brabo.sh -g DATA -d /dev/sdt
+2|rac-asmlib|DATA 2|Adicionar dois discos com power 4, sem esperar o rebalance|./asm_add_disk_brabo.sh -g DATA -d /dev/sdt,/dev/sdu -p 4 --execute
+3|rac-asmlib|DATA 2|Adicionar e acompanhar o rebalance até o fim (no máximo 3h)|./asm_add_disk_brabo.sh -g DATA -d /dev/sdt -d /dev/sdu -p 8 --wait --wait-timeout 180 --execute
+4|rac-asmlib|DATA 1 DATA|Adicionar SEM rebalance agora e rebalancear na janela|./asm_add_disk_brabo.sh -g DATA -d /dev/sdt --no-rebalance --execute;;./asm_add_disk_brabo.sh -g DATA --set-power 8 --execute
+5|rac-asmlib-rebal|DATA|Reduzir o power de um rebalance que está pesando no I/O|./asm_add_disk_brabo.sh -g DATA --set-power 2 --execute
+6|rac-asmlib-rebal||Acompanhar o rebalance / ver o status do diskgroup|./asm_add_disk_brabo.sh -g DATA --monitor --poll 60;;./asm_add_disk_brabo.sh -g DATA --status
+7|rac-asmlib-rescan||Descobrir quais discos estão livres (somente leitura) e rescan|./asm_add_disk_brabo.sh --scan;;./asm_add_disk_brabo.sh --rescan --execute
+8|rac-asmlib-mix||DG com nomes inconsistentes (DSK_DATA_4 e DSK_DATA_04): força o padrão|./asm_add_disk_brabo.sh -g DATA -d /dev/sdt --prefix DSK_DATA_ --width 2
+9|rac-asmlib|DATA 2|Labels e nomes explícitos|./asm_add_disk_brabo.sh -g DATA -d /dev/sdt,/dev/sdu --labels DSK_DATA_17,DSK_DATA_18 --names DSK_DATA_17,DSK_DATA_18 --execute
+10|aws-nvme|DATA 1|AWS EBS em instância Nitro (use o by-id)|./asm_add_disk_brabo.sh -g DATA -d /dev/disk/by-id/nvme-Amazon_Elastic_Block_Store_vol0abc123 -p 4 --execute
+11|multipath|DATA 2|Storage com multipath|./asm_add_disk_brabo.sh -g DATA -d /dev/mapper/mpathk,/dev/mapper/mpathl --execute
+12|afd|DATA 1|ASMFD (AFD), disco inteiro|./asm_add_disk_brabo.sh -g DATA -d /dev/sdk --method afd --no-partition --execute
+13|udev|RECO 1|udev (a regra nasce da regra de um disco atual do DG)|./asm_add_disk_brabo.sh -g RECO -d /dev/sdm --execute
+14|normal-fg|DATA 2|DG NORMAL com failgroups nomeados (um disco em cada failgroup)|./asm_add_disk_brabo.sh -g DATA -d /dev/sdt,/dev/sdu --failgroup FG_STG1,FG_STG2 --execute
+15|extended|DATA 1|Extended Diskgroup (12.2+)|./asm_add_disk_brabo.sh -g DATA -d /dev/sdt --site SITEA --failgroup FG_SITEA --execute
+16|rac-asmlib-nossh|DATA 1 OK|RAC sem ssh entre os nós: comandos por nó e espera o OK|./asm_add_disk_brabo.sh -g DATA -d /dev/sdt --remote manual --execute
+17|rac-asmlib||Ambiente Grid explícito (perfil .profile_infra)|./asm_add_disk_brabo.sh -g DATA -d /dev/sdt --grid-user grid --grid-home /u01/app/19.0.0/grid --asm-sid +ASM1 --env-file /home/grid/.profile_infra
+18|rac-asmlib|DATA 2 DATA 2|Provisionar hoje e adicionar na janela|./asm_add_disk_brabo.sh -g DATA -d /dev/sdt,/dev/sdu --provision-only --execute;;./asm_add_disk_brabo.sh -g DATA --add-only -d DSK_DATA_17,DSK_DATA_18 -p 4 --execute
+19|aix|DATA 2|AIX (RAC) ajustando reserve_policy|./asm_add_disk_brabo.sh -g DATA -d hdisk12,hdisk13 --fix-aix-attrs -p 4 --execute
+20|solaris|DATA 1|Solaris (provisionamento manual): só o ADD|./asm_add_disk_brabo.sh -g DATA --add-only -d /dev/rdsk/c0t5d0s6 --names DATA_0007 --execute
+21|restart-asmlib|DATA 1|Partição já criada e vazia|./asm_add_disk_brabo.sh -g DATA -d /dev/sdj1 --use-existing-partition --execute
+22|rac-asmlib||Automação (Ansible/cron): sem prompt, ssh obrigatório, acompanha o rebalance|./asm_add_disk_brabo.sh -g DATA -d /dev/sdt -p 4 --remote ssh --wait --execute --yes
+23|exadata||Exadata: storage expansion com griddisks já criados (dry-run)|./asm_add_disk_brabo.sh -g DATA --exa-cell exa01celadm04
+24|exadata|DATA 24|Exadata: duas cells novas no DATA com power 8, acompanhando|./asm_add_disk_brabo.sh -g DATA --exa-cell exa01celadm04,exa01celadm05 -p 8 --wait --execute
+25|exadata-novacell|RECO 12|Exadata: criar os griddisks RECO (mesmo tamanho do DG) e adicionar|./asm_add_disk_brabo.sh -g RECO --exa-cell exa01celadm04 --exa-create-griddisk -p 4 --execute
+26|exadata-novacell|DATA 12 DATA 12|Exadata: criar os griddisks hoje e adicionar na janela|./asm_add_disk_brabo.sh -g DATA --exa-cell exa01celadm04 --exa-create-griddisk --provision-only --execute;;./asm_add_disk_brabo.sh -g DATA --exa-cell exa01celadm04 -p 8 --execute
+27|exadata-c1||Exadata: cells como celladmin, prefixo explícito|./asm_add_disk_brabo.sh -g DATAC1 --exa-cell exa01celadm04 --exa-prefix DATAC1 --exa-user celladmin
+T1|rac-asmlib||Trava: disco com lixo no início (não zerado)|./asm_add_disk_brabo.sh -g DATA -d /dev/sdv
+T2|rac-asmlib||Trava: disco com header ASM antigo|./asm_add_disk_brabo.sh -g DATA -d /dev/sdx
+T3|rac-asmlib||Trava: tamanho diferente dos discos do DG|./asm_add_disk_brabo.sh -g DATA -d /dev/sdw
+T4|rac-asmlib||Trava: disco montado, disco do SO, partição e disco de outro DG|./asm_add_disk_brabo.sh -g DATA -d /dev/sdb,/dev/sda,/dev/sdc1,/dev/sds
+T5|rac-asmlib-rebal||Trava: rebalance em andamento no DG|./asm_add_disk_brabo.sh -g DATA -d /dev/sdu
+T6|normal-fg||Trava: DG NORMAL com failgroups nomeados exige --failgroup|./asm_add_disk_brabo.sh -g DATA -d /dev/sdt
+T7|exacs||Trava: Exadata Cloud (ExaCS/ExaCC) é recusado|./asm_add_disk_brabo.sh -g DATA --exa-cell exa01celadm04
+T8|rac-asmlib|SEM_TTY|Trava: --execute sem terminal e sem --yes|./asm_add_disk_brabo.sh -g DATA -d /dev/sdt --execute < /dev/null
+T9|rac-asmlib-nossh||Trava: --remote ssh exigido e um nó sem ssh|./asm_add_disk_brabo.sh -g DATA -d /dev/sdt --remote ssh

@@ -1,0 +1,45 @@
+#!/bin/bash
+# Simulador ASM ADD DISK BRABO — comando FALSO (lê/grava /sim/mundo). by • DBA BRABO
+. /sim/lab/lib.sh
+nodeps=0; noh=0; full=0; cols="NAME,MAJ:MIN,TYPE,SIZE,MOUNTPOINT"; devs=()
+while (( $# )); do
+  case $1 in
+    --*) shift ;;
+    -*) o=${1#-}; shift
+        [[ $o == *d* ]] && nodeps=1; [[ $o == *n* ]] && noh=1; [[ $o == *p* ]] && full=1
+        if [[ $o == *o* ]]; then cols=$1; shift; fi ;;
+    *) devs+=("$1"); shift ;;
+  esac
+done
+linha() {  # kname
+  local k=$1 c out=() v n
+  IFS=',' read -r -a cs <<<"$cols"
+  for c in "${cs[@]}"; do
+    case $c in
+      NAME)  n=$(dev_campo "$k" 13); [[ -n $n ]] || n=$k
+             if (( full )); then [[ -n $(dev_campo "$k" 13) ]] && v=/dev/mapper/$n || v=/dev/$n; else v=$n; fi ;;
+      KNAME) (( full )) && v=/dev/$k || v=$k ;;
+      TYPE)  v=$(dev_campo "$k" 2) ;;
+      MAJ:MIN) v=$(dev_campo "$k" 3) ;;
+      SIZE)  v=$(humano "$(dev_campo "$k" 4)") ;;
+      MOUNTPOINT) v=$(dev_campo "$k" 7) ;;
+      PKNAME) v=$(dev_campo "$k" 6); v=${v%%,*} ;;
+      OWNER) v=$(stat -c %U "/dev/$k" 2>/dev/null) ;;
+      GROUP) v=$(stat -c %G "/dev/$k" 2>/dev/null) ;;
+      MODE)  v=$(stat -c %A "/dev/$k" 2>/dev/null) ;;
+      *) v="" ;;
+    esac
+    out+=("$v")
+  done
+  local IFS=' '; printf '%-10s ' "${out[@]}" | sed 's/ *$//'; echo
+}
+arvore() { local k=$1 f; linha "$k"; (( nodeps )) && return; for f in $(dev_filhos "$k"); do arvore "$f"; done; }
+(( noh )) || { IFS=',' read -r -a cs <<<"$cols"; printf '%-10s ' "${cs[@]}" | sed 's/ *$//'; echo; }
+if (( ${#devs[@]} )); then
+  for d in "${devs[@]}"; do
+    k=$(kname_de "$d"); dev_existe "$k" || { echo "lsblk: $d: not a block device" >&2; exit 32; }
+    arvore "$k"
+  done
+else
+  awk -F'|' '$6==""{print $1}' "$M/devices.tsv" | while read -r k; do arvore "$k"; done
+fi

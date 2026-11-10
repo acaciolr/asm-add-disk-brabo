@@ -1,0 +1,22 @@
+#!/bin/bash
+# Simulador ASM ADD DISK BRABO — comando FALSO (lê/grava /sim/mundo). by • DBA BRABO
+. /sim/lab/lib.sh
+C=$M/cells/$SIM_CELL; e=""
+while (( $# )); do [[ $1 == -e ]] && { e=$2; shift 2; continue; }; shift; done
+e=$(tr -s ' ' <<<"$e")
+case $e in
+  "list cell attributes name,status") printf '\t %s\t %s\n' "$(cat "$C/nome")" "$(cat "$C/status")" ;;
+  "list griddisk attributes name") awk -F'|' '{printf "\t %s\n", $1}' "$C/griddisks.tsv" ;;
+  "list griddisk attributes name,size,status,asmmodestatus,diskType,asmDiskGroupName")
+     awk -F'|' '{printf "\t %s\t %s\t %s\t %s\t %s", $1,$2,$3,$4,$5; if($6!="") printf "\t %s", $6; printf "\n"}' "$C/griddisks.tsv" ;;
+  "list celldisk attributes name,diskType,status,freeSpace") awk -F'|' '{printf "\t %s\t %s\t %s\t %s\n", $1,$2,$3,$4}' "$C/celldisks.tsv" ;;
+  "create griddisk all "*)
+     t=$(awk '{print $4}' <<<"$e"); p=$(sed -n 's/.*prefix=\([A-Za-z0-9_]*\).*/\1/p' <<<"$e"); s=$(sed -n 's/.*size=\([0-9.]*[MGT]\).*/\1/p' <<<"$e")
+     [[ $t == harddisk ]] && dt=HardDisk || dt=FlashDisk
+     while IFS='|' read -r cd tipo st fr; do
+       [[ $tipo == "$dt" ]] || continue
+       echo "${p}_${cd}|$s|active|UNUSED|$dt|" >> "$C/griddisks.tsv"
+       echo "GridDisk ${p}_${cd} successfully created"
+     done < "$C/celldisks.tsv" ;;
+  *) echo "CELL-01504: Invalid command syntax." ;;
+esac

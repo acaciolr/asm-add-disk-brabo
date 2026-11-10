@@ -1,0 +1,29 @@
+[root@racdb01 dbabrabo]# ./asm_add_disk_brabo.sh -g DATA --set-power 2 --execute
+
+   ____  ____    _      ____  ____      _    ____   ___
+  |  _ \| __ )  / \    | __ )|  _ \    / \  | __ ) / _ \
+  | | | |  _ \ / _ \   |  _ \| |_) |  / _ \ |  _ \| | | |
+  | |_| | |_) / ___ \  | |_) |  _ <  / ___ \| |_) | |_| |
+  |____/|____/_/   \_\ |____/|_| \_\/_/   \_\____/ \___/
+  [1mASM ADD DISK BRABO[0m v1.1.0 (2026-11-10) — adição segura de discos no Oracle ASM
+  by • DBA BRABO — dbabrabo.com.br
+
+2026-11-10 22:00:00 [1;34m[INFO][0m Ação=set-power | modo=EXECUTE | host=racdb01 | usuário=root | SO=Linux
+2026-11-10 22:00:00 [1;34m[INFO][0m Linha de comando: ./asm_add_disk_brabo.sh -g DATA --set-power 2 --execute
+
+[1m==[ Ambiente Grid / ASM ]==[0m
+2026-11-10 22:00:00 [1;32m[ OK ][0m ASM: SID=+ASM1 versão=19.0.0.0.0 instâncias=2
+2026-11-10 22:00:00 [1;34m[INFO][0m Grid: user=grid home=/u01/app/19.0.0/grid base=/u01/app/grid
+2026-11-10 22:00:00 [1;34m[INFO][0m asm_power_limit=1 | asm_diskstring=ORCL:*
+
+[1m==[ Rebalance power do DATA ]==[0m
+2026-11-10 22:00:01 [1;34m[INFO][0m Operação atual:
+        1|REBAL|RUN|4|21400|65535|1800|25|-|REBALANCE
+    ALTER DISKGROUP DATA REBALANCE POWER 2 NOWAIT;
+[1;33mDigite o nome do diskgroup (DATA) para confirmar: [0mDATA
+2026-11-10 22:00:01 [1;32m[ OK ][0m Power alterado para 2.
+        1|REBAL|RUN|2|21475|65535|900|49|-|REBALANCE
+
+  Log completo: /var/log/dbabrabo/asm_add_disk_brabo_DATA_set-power_20261110_220000.log
+
+

@@ -1,0 +1,7 @@
+#!/bin/bash
+# Simulador ASM ADD DISK BRABO — comando FALSO (lê/grava /sim/mundo). by • DBA BRABO
+. /sim/lab/lib.sh
+for a; do [[ $a == if=* ]] && dev=${a#if=}; done
+k=$(kname_de "$dev")
+if [[ -n $(dev_campo "$k" 10) ]]; then printf 'restos de dados antigos'; fi
+exit 0

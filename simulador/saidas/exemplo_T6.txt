@@ -1,0 +1,43 @@
+[root@racdb01 dbabrabo]# ./asm_add_disk_brabo.sh -g DATA -d /dev/sdt
+
+   ____  ____    _      ____  ____      _    ____   ___
+  |  _ \| __ )  / \    | __ )|  _ \    / \  | __ ) / _ \
+  | | | |  _ \ / _ \   |  _ \| |_) |  / _ \ |  _ \| | | |
+  | |_| | |_) / ___ \  | |_) |  _ <  / ___ \| |_) | |_| |
+  |____/|____/_/   \_\ |____/|_| \_\/_/   \_\____/ \___/
+  [1mASM ADD DISK BRABO[0m v1.1.0 (2026-11-10) — adição segura de discos no Oracle ASM
+  by • DBA BRABO — dbabrabo.com.br
+
+2026-11-10 22:00:01 [1;34m[INFO][0m Ação=add | modo=DRY-RUN | host=racdb01 | usuário=root | SO=Linux
+2026-11-10 22:00:01 [1;34m[INFO][0m Linha de comando: ./asm_add_disk_brabo.sh -g DATA -d /dev/sdt
+
+[1m==[ Ambiente Grid / ASM ]==[0m
+2026-11-10 22:00:01 [1;32m[ OK ][0m ASM: SID=+ASM1 versão=19.0.0.0.0 instâncias=2
+2026-11-10 22:00:01 [1;34m[INFO][0m Grid: user=grid home=/u01/app/19.0.0/grid base=/u01/app/grid
+2026-11-10 22:00:01 [1;34m[INFO][0m asm_power_limit=1 | asm_diskstring=ORCL:*
+2026-11-10 22:00:01 [1;32m[ OK ][0m Cluster: RAC com 2 nós (racdb01 racdb02) | local=racdb01
+2026-11-10 22:00:01 [1;32m[ OK ][0m Execução remota: ssh (nós: racdb02)
+
+[1m==[ Diskgroup DATA ]==[0m
+2026-11-10 22:00:01 [1;32m[ OK ][0m DG=DATA tipo=NORMAL estado=MOUNTED discos=16 total=8388576MB livre=1449984MB usable=462849MB
+2026-11-10 22:00:01 [1;34m[INFO][0m AU=4MB setor=512 compatible.asm=19.0.0.0.0 | tamanho de referência dos discos: 524286MB
+
+[1m==[ Método de provisionamento ]==[0m
+2026-11-10 22:00:01 [1;32m[ OK ][0m Método: asmlib | estilo de caminho: orcl
+2026-11-10 22:00:03 [1;34m[INFO][0m Discos atuais: particionados=16 inteiros=0 | tabela=gpt
+
+[1m==[ Validação dos discos (1) ]==[0m
+2026-11-10 22:00:03 [1;32m[ OK ][0m /dev/sdt -> /dev/sdt (disk, 524288MB, setor 512) by-id: scsi-36000c29f1111111e8d2c41b9a7f03e5
+2026-11-10 22:00:03 [1;32m[ OK ][0m [racdb02] /dev/sdt visível como /dev/sdt e limpo
+
+[1m==[ Labels e nomes ASM ]==[0m
+2026-11-10 22:00:03 [1;34m[INFO][0m Padrão de label: prefixo='DSK_DATA_' padding=2 maior número em uso=16 → DSK_DATA_17
+2026-11-10 22:00:04 [1;34m[INFO][0m Convenção do DG: nome ASM = label
+2026-11-10 22:00:04 [1;32m[ OK ][0m Disco 1: label=DSK_DATA_17 nome=DSK_DATA_17 caminho=ORCL:DSK_DATA_17
+
+[1m==[ Failgroups / Sites / Rebalance ]==[0m
+2026-11-10 22:00:04 [1;31m[ERRO][0m DG NORMAL com failgroups NOMEADOS (FG_STG1 FG_STG2 ). Informe --failgroup (um para todos ou um por disco).
+
+  Log completo: /var/log/dbabrabo/asm_add_disk_brabo_DATA_add_20261110_220001.log
+
+

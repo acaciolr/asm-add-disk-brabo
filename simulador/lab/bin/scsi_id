@@ -1,0 +1,6 @@
+#!/bin/bash
+# Simulador ASM ADD DISK BRABO — comando FALSO (lê/grava /sim/mundo). by • DBA BRABO
+. /sim/lab/lib.sh
+d=""; for a; do case $a in --device=*) d=${a#--device=} ;; /dev/*) d=$a ;; esac; done
+k=$(kname_de "$d"); [[ $(dev_campo "$k" 2) == part ]] && k=$(dev_campo "$k" 6)
+v=$(dev_prop "$k" ID_SERIAL); [[ -n $v ]] && echo "$v"

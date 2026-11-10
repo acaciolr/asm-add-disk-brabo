@@ -1,0 +1,9 @@
+#!/bin/bash
+# Simulador ASM ADD DISK BRABO — comando FALSO (lê/grava /sim/mundo). by • DBA BRABO
+. /sim/lab/lib.sh
+dev=${!#}; k=$(kname_de "$dev"); n=$(dev_campo "$k" 13); p=${n}1
+awk -F'|' -v n="$p" '$13==n{f=1} END{exit !f}' "$M/devices.tsv" && exit 0
+mx=$(awk -F'|' '$1 ~ /^dm-/{sub("dm-","",$1); if($1+0>m)m=$1+0} END{print m+0}' "$M/devices.tsv"); nk=dm-$((mx+1))
+b=$(dev_campo "$k" 4)
+echo "$nk|part|253:$((mx+1))|$((b-2097152))|$(dev_campo "$k" 5)|$k||||||DM_NAME=$p;DM_UUID=part1-$(dev_prop "$k" DM_UUID)|$p" >> "$M/devices.tsv"
+mknod "/dev/$nk" b 253 "$((mx+1))"; chgrp disk "/dev/$nk"; chmod 660 "/dev/$nk"; ln -sfn "../$nk" "/dev/mapper/$p"; sysfs_dev "$nk"

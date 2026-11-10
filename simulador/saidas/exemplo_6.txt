@@ -1,0 +1,145 @@
+[root@racdb01 dbabrabo]# ./asm_add_disk_brabo.sh -g DATA --monitor --poll 60
+
+   ____  ____    _      ____  ____      _    ____   ___
+  |  _ \| __ )  / \    | __ )|  _ \    / \  | __ ) / _ \
+  | | | |  _ \ / _ \   |  _ \| |_) |  / _ \ |  _ \| | | |
+  | |_| | |_) / ___ \  | |_) |  _ <  / ___ \| |_) | |_| |
+  |____/|____/_/   \_\ |____/|_| \_\/_/   \_\____/ \___/
+  [1mASM ADD DISK BRABO[0m v1.1.0 (2026-11-10) — adição segura de discos no Oracle ASM
+  by • DBA BRABO — dbabrabo.com.br
+
+2026-11-10 22:00:00 [1;34m[INFO][0m Ação=monitor | modo=DRY-RUN | host=racdb01 | usuário=root | SO=Linux
+2026-11-10 22:00:00 [1;34m[INFO][0m Linha de comando: ./asm_add_disk_brabo.sh -g DATA --monitor --poll 60
+
+[1m==[ Ambiente Grid / ASM ]==[0m
+2026-11-10 22:00:00 [1;32m[ OK ][0m ASM: SID=+ASM1 versão=19.0.0.0.0 instâncias=2
+2026-11-10 22:00:00 [1;34m[INFO][0m Grid: user=grid home=/u01/app/19.0.0/grid base=/u01/app/grid
+2026-11-10 22:00:00 [1;34m[INFO][0m asm_power_limit=1 | asm_diskstring=ORCL:*
+
+[1m==[ Rebalance do DATA (Ctrl+C sai do monitor; o rebalance NÃO é afetado) ]==[0m
+  2026-11-10 22:00:00 inst=1 REBAL/RUN pass=REBALANCE power=4 21400/65535 AU (1800 AU/min) est=25 min
+  2026-11-10 22:01:00 inst=1 REBAL/RUN pass=REBALANCE power=4 23200/65535 AU (1800 AU/min) est=24 min
+  2026-11-10 22:02:00 inst=1 REBAL/RUN pass=REBALANCE power=4 25000/65535 AU (1800 AU/min) est=23 min
+  2026-11-10 22:03:00 inst=1 REBAL/RUN pass=REBALANCE power=4 26800/65535 AU (1800 AU/min) est=22 min
+  2026-11-10 22:04:00 inst=1 REBAL/RUN pass=REBALANCE power=4 28600/65535 AU (1800 AU/min) est=21 min
+  2026-11-10 22:05:00 inst=1 REBAL/RUN pass=REBALANCE power=4 30400/65535 AU (1800 AU/min) est=20 min
+  2026-11-10 22:06:00 inst=1 REBAL/RUN pass=REBALANCE power=4 32200/65535 AU (1800 AU/min) est=19 min
+  2026-11-10 22:07:00 inst=1 REBAL/RUN pass=REBALANCE power=4 34000/65535 AU (1800 AU/min) est=18 min
+  2026-11-10 22:08:00 inst=1 REBAL/RUN pass=REBALANCE power=4 35800/65535 AU (1800 AU/min) est=17 min
+  2026-11-10 22:09:00 inst=1 REBAL/RUN pass=REBALANCE power=4 37600/65535 AU (1800 AU/min) est=16 min
+  2026-11-10 22:10:00 inst=1 REBAL/RUN pass=REBALANCE power=4 39400/65535 AU (1800 AU/min) est=15 min
+  2026-11-10 22:11:00 inst=1 REBAL/RUN pass=REBALANCE power=4 41200/65535 AU (1800 AU/min) est=14 min
+  2026-11-10 22:12:00 inst=1 REBAL/RUN pass=REBALANCE power=4 43000/65535 AU (1800 AU/min) est=13 min
+  2026-11-10 22:13:01 inst=1 REBAL/RUN pass=REBALANCE power=4 44800/65535 AU (1800 AU/min) est=12 min
+  2026-11-10 22:14:01 inst=1 REBAL/RUN pass=REBALANCE power=4 46630/65535 AU (1800 AU/min) est=11 min
+  2026-11-10 22:15:01 inst=1 REBAL/RUN pass=REBALANCE power=4 48430/65535 AU (1800 AU/min) est=10 min
+  2026-11-10 22:16:01 inst=1 REBAL/RUN pass=REBALANCE power=4 50230/65535 AU (1800 AU/min) est=9 min
+  2026-11-10 22:17:01 inst=1 REBAL/RUN pass=REBALANCE power=4 52030/65535 AU (1800 AU/min) est=8 min
+  2026-11-10 22:18:01 inst=1 REBAL/RUN pass=REBALANCE power=4 53830/65535 AU (1800 AU/min) est=7 min
+  2026-11-10 22:19:01 inst=1 REBAL/RUN pass=REBALANCE power=4 55630/65535 AU (1800 AU/min) est=6 min
+  2026-11-10 22:20:01 inst=1 REBAL/RUN pass=REBALANCE power=4 57430/65535 AU (1800 AU/min) est=5 min
+  2026-11-10 22:21:01 inst=1 REBAL/RUN pass=REBALANCE power=4 59230/65535 AU (1800 AU/min) est=4 min
+  2026-11-10 22:22:01 inst=1 REBAL/RUN pass=COMPACT power=4 61030/65535 AU (1800 AU/min) est=3 min
+  2026-11-10 22:23:01 inst=1 REBAL/RUN pass=COMPACT power=4 62830/65535 AU (1800 AU/min) est=2 min
+  2026-11-10 22:24:01 inst=1 REBAL/RUN pass=COMPACT power=4 64630/65535 AU (1800 AU/min) est=1 min
+2026-11-10 22:25:01 [1;32m[ OK ][0m Nenhuma operação em andamento no DATA — rebalance concluído.
+
+  Log completo: /var/log/dbabrabo/asm_add_disk_brabo_DATA_monitor_20261110_220000.log
+
+
+[root@racdb01 dbabrabo]# ./asm_add_disk_brabo.sh -g DATA --status
+
+   ____  ____    _      ____  ____      _    ____   ___
+  |  _ \| __ )  / \    | __ )|  _ \    / \  | __ ) / _ \
+  | | | |  _ \ / _ \   |  _ \| |_) |  / _ \ |  _ \| | | |
+  | |_| | |_) / ___ \  | |_) |  _ <  / ___ \| |_) | |_| |
+  |____/|____/_/   \_\ |____/|_| \_\/_/   \_\____/ \___/
+  [1mASM ADD DISK BRABO[0m v1.1.0 (2026-11-10) — adição segura de discos no Oracle ASM
+  by • DBA BRABO — dbabrabo.com.br
+
+2026-11-10 22:25:01 [1;34m[INFO][0m Ação=status | modo=DRY-RUN | host=racdb01 | usuário=root | SO=Linux
+2026-11-10 22:25:01 [1;34m[INFO][0m Linha de comando: ./asm_add_disk_brabo.sh -g DATA --status
+
+[1m==[ Ambiente Grid / ASM ]==[0m
+2026-11-10 22:25:01 [1;32m[ OK ][0m ASM: SID=+ASM1 versão=19.0.0.0.0 instâncias=2
+2026-11-10 22:25:01 [1;34m[INFO][0m Grid: user=grid home=/u01/app/19.0.0/grid base=/u01/app/grid
+2026-11-10 22:25:01 [1;34m[INFO][0m asm_power_limit=1 | asm_diskstring=ORCL:*
+
+[1m==[ Status do diskgroup DATA ]==[0m
+
+NAME                 STATE      TYPE      TOTAL_MB    FREE_MB USABLE_FILE_MB REQUIRED_MIRROR_FREE_MB      AU_MB SECTOR_SIZE
+-------------------- ---------- ------- ---------- ---------- -------------- ----------------------- ---------- -----------
+DATA                 MOUNTED    EXTERN     8912862    1749984        1749984                       0          4         512
+
+==== Failgroups ====
+
+FAILGROUP                      FAILGRO     DISCOS   TOTAL_MB    FREE_MB
+------------------------------ ------- ---------- ---------- ----------
+DSK_DATA_01                    REGULAR          1     524286      82944
+DSK_DATA_02                    REGULAR          1     524286      83968
+DSK_DATA_03                    REGULAR          1     524286      84992
+DSK_DATA_04                    REGULAR          1     524286      86016
+DSK_DATA_05                    REGULAR          1     524286      87040
+DSK_DATA_06                    REGULAR          1     524286      88064
+DSK_DATA_07                    REGULAR          1     524286      89088
+DSK_DATA_08                    REGULAR          1     524286      90112
+DSK_DATA_09                    REGULAR          1     524286      91136
+DSK_DATA_10                    REGULAR          1     524286      92160
+DSK_DATA_11                    REGULAR          1     524286      93184
+DSK_DATA_12                    REGULAR          1     524286      94208
+DSK_DATA_13                    REGULAR          1     524286      95232
+DSK_DATA_14                    REGULAR          1     524286      96256
+DSK_DATA_15                    REGULAR          1     524286      97280
+DSK_DATA_16                    REGULAR          1     524286      98304
+DSK_DATA_17                    REGULAR          1     524286     300000
+
+==== Discos (gv$asm_disk) do DATA e candidatos (grupo 0) ====
+
+                                       ASM Disks - General Information (From GV$ASM_DISK)
+
+       ASM   ASM                                      Total                                                             
+      Disk  Disk                                       Disk Mount   Header       Mode     Disk                          
+Inst Grp #     # ASM Disk Name                    Space(MB) Status  Status       Status   State    Failgroup            OS Disk Path Name
+---- ----- ----- -------------------------------- --------- ------- ------------ -------- -------- -------------------- ----------------------------------------
+   1     1     0 DSK_DATA_01                         524286 CACHED  MEMBER       ONLINE   NORMAL   DSK_DATA_01          ORCL:DSK_DATA_01
+   2     1     0 DSK_DATA_01                         524286 CACHED  MEMBER       ONLINE   NORMAL   DSK_DATA_01          ORCL:DSK_DATA_01
+   1     1     1 DSK_DATA_02                         524286 CACHED  MEMBER       ONLINE   NORMAL   DSK_DATA_02          ORCL:DSK_DATA_02
+   2     1     1 DSK_DATA_02                         524286 CACHED  MEMBER       ONLINE   NORMAL   DSK_DATA_02          ORCL:DSK_DATA_02
+   1     1     2 DSK_DATA_03                         524286 CACHED  MEMBER       ONLINE   NORMAL   DSK_DATA_03          ORCL:DSK_DATA_03
+   2     1     2 DSK_DATA_03                         524286 CACHED  MEMBER       ONLINE   NORMAL   DSK_DATA_03          ORCL:DSK_DATA_03
+   1     1     3 DSK_DATA_04                         524286 CACHED  MEMBER       ONLINE   NORMAL   DSK_DATA_04          ORCL:DSK_DATA_04
+   2     1     3 DSK_DATA_04                         524286 CACHED  MEMBER       ONLINE   NORMAL   DSK_DATA_04          ORCL:DSK_DATA_04
+   1     1     4 DSK_DATA_05                         524286 CACHED  MEMBER       ONLINE   NORMAL   DSK_DATA_05          ORCL:DSK_DATA_05
+   2     1     4 DSK_DATA_05                         524286 CACHED  MEMBER       ONLINE   NORMAL   DSK_DATA_05          ORCL:DSK_DATA_05
+   1     1     5 DSK_DATA_06                         524286 CACHED  MEMBER       ONLINE   NORMAL   DSK_DATA_06          ORCL:DSK_DATA_06
+   2     1     5 DSK_DATA_06                         524286 CACHED  MEMBER       ONLINE   NORMAL   DSK_DATA_06          ORCL:DSK_DATA_06
+   1     1     6 DSK_DATA_07                         524286 CACHED  MEMBER       ONLINE   NORMAL   DSK_DATA_07          ORCL:DSK_DATA_07
+   2     1     6 DSK_DATA_07                         524286 CACHED  MEMBER       ONLINE   NORMAL   DSK_DATA_07          ORCL:DSK_DATA_07
+   1     1     7 DSK_DATA_08                         524286 CACHED  MEMBER       ONLINE   NORMAL   DSK_DATA_08          ORCL:DSK_DATA_08
+   2     1     7 DSK_DATA_08                         524286 CACHED  MEMBER       ONLINE   NORMAL   DSK_DATA_08          ORCL:DSK_DATA_08
+   1     1     8 DSK_DATA_09                         524286 CACHED  MEMBER       ONLINE   NORMAL   DSK_DATA_09          ORCL:DSK_DATA_09
+   2     1     8 DSK_DATA_09                         524286 CACHED  MEMBER       ONLINE   NORMAL   DSK_DATA_09          ORCL:DSK_DATA_09
+   1     1     9 DSK_DATA_10                         524286 CACHED  MEMBER       ONLINE   NORMAL   DSK_DATA_10          ORCL:DSK_DATA_10
+   2     1     9 DSK_DATA_10                         524286 CACHED  MEMBER       ONLINE   NORMAL   DSK_DATA_10          ORCL:DSK_DATA_10
+   1     1    10 DSK_DATA_11                         524286 CACHED  MEMBER       ONLINE   NORMAL   DSK_DATA_11          ORCL:DSK_DATA_11
+   2     1    10 DSK_DATA_11                         524286 CACHED  MEMBER       ONLINE   NORMAL   DSK_DATA_11          ORCL:DSK_DATA_11
+   1     1    11 DSK_DATA_12                         524286 CACHED  MEMBER       ONLINE   NORMAL   DSK_DATA_12          ORCL:DSK_DATA_12
+   2     1    11 DSK_DATA_12                         524286 CACHED  MEMBER       ONLINE   NORMAL   DSK_DATA_12          ORCL:DSK_DATA_12
+   1     1    12 DSK_DATA_13                         524286 CACHED  MEMBER       ONLINE   NORMAL   DSK_DATA_13          ORCL:DSK_DATA_13
+   2     1    12 DSK_DATA_13                         524286 CACHED  MEMBER       ONLINE   NORMAL   DSK_DATA_13          ORCL:DSK_DATA_13
+   1     1    13 DSK_DATA_14                         524286 CACHED  MEMBER       ONLINE   NORMAL   DSK_DATA_14          ORCL:DSK_DATA_14
+   2     1    13 DSK_DATA_14                         524286 CACHED  MEMBER       ONLINE   NORMAL   DSK_DATA_14          ORCL:DSK_DATA_14
+   1     1    14 DSK_DATA_15                         524286 CACHED  MEMBER       ONLINE   NORMAL   DSK_DATA_15          ORCL:DSK_DATA_15
+   2     1    14 DSK_DATA_15                         524286 CACHED  MEMBER       ONLINE   NORMAL   DSK_DATA_15          ORCL:DSK_DATA_15
+   1     1    15 DSK_DATA_16                         524286 CACHED  MEMBER       ONLINE   NORMAL   DSK_DATA_16          ORCL:DSK_DATA_16
+   2     1    15 DSK_DATA_16                         524286 CACHED  MEMBER       ONLINE   NORMAL   DSK_DATA_16          ORCL:DSK_DATA_16
+   1     1    16 DSK_DATA_17                         524286 CACHED  MEMBER       ONLINE   NORMAL   DSK_DATA_17          ORCL:DSK_DATA_17
+   2     1    16 DSK_DATA_17                         524286 CACHED  MEMBER       ONLINE   NORMAL   DSK_DATA_17          ORCL:DSK_DATA_17
+
+==== Operações (gv$asm_operation) ====
+
+no rows selected
+
+  Log completo: /var/log/dbabrabo/asm_add_disk_brabo_DATA_status_20261110_222501.log
+
+

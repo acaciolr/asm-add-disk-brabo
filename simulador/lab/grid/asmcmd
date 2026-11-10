@@ -1,0 +1,18 @@
+#!/bin/bash
+# Simulador ASM ADD DISK BRABO — binário FALSO do Grid Home (lê/grava /sim/mundo). by • DBA BRABO
+. /sim/lab/lib.sh
+A=$M/afd.tsv; touch "$A"
+case ${1:-} in
+  afd_state) if [[ -f $M/afd_parado ]]; then echo "ASMCMD-9526: The AFD state is 'NOT INSTALLED' and filtering is 'DISABLED' on host '$(hostname -s)'"
+             else echo "ASMCMD-9526: The AFD state is 'LOADED' and filtering is 'ENABLED' on host '$(hostname -s)'"; fi ;;
+  afd_lslbl)
+    echo "--------------------------------------------------------------------------------"
+    echo "Label                     Filtering   Path"
+    echo "================================================================================"
+    k=""; [[ -n ${2:-} ]] && k=$(kname_de "$2")
+    while IFS='|' read -r l d; do [[ -z $k || $k == "$d" ]] && printf '%-25s %9s   /dev/%s\n' "$l" ENABLED "$d"; done < "$A" ;;
+  afd_label) k=$(kname_de "$3"); echo "$2|$k" >> "$A" ;;
+  afd_unlabel) awk -F'|' -v l="$2" '$1!=l' "$A" > "$A.t" && mv "$A.t" "$A" ;;
+  afd_scan) : ;;
+  *) echo "ASMCMD-8022: unknown command '$1' specified"; exit 1 ;;
+esac

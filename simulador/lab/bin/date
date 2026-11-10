@@ -1,0 +1,4 @@
+#!/bin/bash
+# Simulador ASM ADD DISK BRABO — comando FALSO (lê/grava /sim/mundo). by • DBA BRABO
+. /sim/lab/lib.sh
+exec /usr/bin/date -d "@$(relogio)" "$@"

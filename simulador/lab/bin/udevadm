@@ -1,0 +1,47 @@
+#!/bin/bash
+# Simulador ASM ADD DISK BRABO — comando FALSO (lê/grava /sim/mundo). by • DBA BRABO
+. /sim/lab/lib.sh
+regras=${SIM_UDEV_DIR:-/etc/udev/rules.d}
+aplicar() {  # aplica as regras udev ao kname $1 (o que o udevd faria no change)
+  local K=$1 f line kg prog res want key val sl nm ow gr mo p alvo
+  for f in "$regras"/*.rules; do
+    [[ -r $f ]] || continue
+    while IFS= read -r line; do
+      [[ $line =~ ^[[:space:]]*# || -z ${line// } ]] && continue
+      kg=$(sed -n 's/.*KERNEL=="\([^"]*\)".*/\1/p' <<<"$line")
+      # shellcheck disable=SC2053
+      [[ -z $kg || $K == $kg ]] || continue
+      if [[ $line == *'RESULT=="'* ]]; then
+        prog=$(sed -n 's/.*PROGRAM=="\([^"]*\)".*/\1/p' <<<"$line"); want=$(sed -n 's/.*RESULT=="\([^"]*\)".*/\1/p' <<<"$line")
+        p=$(dev_campo "$K" 6); p=${p%%,*}; [[ -n $p ]] || p=$K
+        prog=${prog//\$parent/$p}; prog=${prog//%P/$p}; prog=${prog//%k/$K}; prog=${prog//\$kernel/$K}; prog=${prog//\$devnode//dev/$K}; prog=${prog//%N//dev/$K}
+        res=$(sh -c "$prog" 2>/dev/null | head -1); [[ $res == "$want" ]] || continue
+      elif [[ $line =~ ENV\{([A-Z_]+)\}==\"([^\"]*)\" ]]; then
+        key=${BASH_REMATCH[1]}; want=${BASH_REMATCH[2]}; val=$(dev_prop "$K" "$key")
+        [[ $val == "$want" ]] || continue
+      else continue; fi
+      sl=$(sed -n 's/.*SYMLINK+="\([^"]*\)".*/\1/p' <<<"$line"); nm=$(sed -n 's/.*NAME="\([^"]*\)".*/\1/p' <<<"$line")
+      ow=$(sed -n 's/.*OWNER="\([^"]*\)".*/\1/p' <<<"$line"); gr=$(sed -n 's/.*GROUP="\([^"]*\)".*/\1/p' <<<"$line"); mo=$(sed -n 's/.*MODE="\([^"]*\)".*/\1/p' <<<"$line")
+      [[ -n $ow ]] && chown "$ow" "/dev/$K"; [[ -n $gr ]] && chgrp "$gr" "/dev/$K"; [[ -n $mo ]] && chmod "$mo" "/dev/$K"
+      for alvo in $sl $nm; do
+        mkdir -p "/dev/$(dirname "$alvo")"; ln -sfn "/dev/$K" "/dev/$alvo"
+      done
+    done < "$f"
+  done
+}
+case "$1 ${2:-}" in
+  "settle"*|"control"*) exit 0 ;;
+  "trigger"*) for a; do [[ $a == --sysname-match=* ]] && aplicar "${a#--sysname-match=}"; done; exit 0 ;;
+esac
+q=""; n=""; attr=0
+shift
+while (( $# )); do case $1 in -q) q=$2; shift 2 ;; --query=*) q=${1#--query=}; shift ;; -n) n=$2; shift 2 ;; --name=*) n=${1#--name=}; shift ;; -a) attr=1; shift ;; *) shift ;; esac; done
+k=$(kname_de "$n"); dev_existe "$k" || { echo "Unknown device \"$n\": No such device" >&2; exit 4; }
+if [[ $q == path ]]; then
+  [[ $(dev_campo "$k" 2) == part ]] && echo "/devices/pci0000:00/0000:00:15.0/0000:03:00.0/host2/block/$(dev_campo "$k" 6)/$k" || echo "/devices/pci0000:00/0000:00:15.0/0000:03:00.0/host2/block/$k"
+elif (( attr )); then
+  echo "  looking at device '/block/$k':"; echo "    KERNEL==\"$k\""
+else
+  echo "DEVNAME=/dev/$k"; echo "DEVTYPE=$( [[ $(dev_campo "$k" 2) == part ]] && echo partition || echo disk)"
+  dev_campo "$k" 12 | tr ';' '\n' | sed '/^$/d'
+fi

@@ -1,0 +1,11 @@
+#!/bin/bash
+# Simulador ASM ADD DISK BRABO — comando FALSO (lê/grava /sim/mundo). by • DBA BRABO
+. /sim/lab/lib.sh
+alvo=""
+while (( $# )); do case $1 in -o) shift 2 ;; -n|-T|-q|-t) shift ;; -*) shift ;; *) alvo=$1; shift; break ;; esac; done
+host=${alvo#*@}; cmd="$*"
+if grep -qx -- "$host" "$M/ssh_falha" 2>/dev/null; then echo "$alvo: Permission denied (publickey,gssapi-keyex,gssapi-with-mic,password)." >&2; exit 255; fi
+if [[ -d $M/cells/$host ]]; then SIM_CELL=$host bash -c "$cmd"; exit $?; fi
+[[ -d /sim/nos/$host ]] || { echo "ssh: Could not resolve hostname $host: Name or service not known" >&2; exit 255; }
+cmd=${cmd//\/etc\/udev\/rules.d\//\/sim\/nos\/$host\/rules.d\/}
+SIM_NO=$host SIM_UDEV_DIR=/sim/nos/$host/rules.d bash -c "$cmd"

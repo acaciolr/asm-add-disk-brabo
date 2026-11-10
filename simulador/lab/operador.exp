@@ -1,0 +1,20 @@
+#!/usr/bin/expect -f
+# Simulador ASM ADD DISK BRABO — o "operador": roda o comando num terminal (pty) e,
+# quando o script pergunta, digita a próxima resposta de SIM_RESPOSTAS. by • DBA BRABO
+set timeout -1
+set respostas {}
+if {[info exists env(SIM_RESPOSTAS)]} { set respostas [split [string trim $env(SIM_RESPOSTAS)] " "] }
+set i 0
+log_user 1
+spawn -noecho bash -c [lindex $argv 0]
+expect {
+  -re {(Digite [^\r\n]*: |digite OK \(ou ABORTAR\): )} {
+    after 400
+    send -- "[lindex $respostas $i]\r"
+    incr i
+    exp_continue
+  }
+  eof
+}
+catch wait r
+exit [lindex $r 3]

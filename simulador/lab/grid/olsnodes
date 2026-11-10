@@ -1,0 +1,4 @@
+#!/bin/bash
+# Simulador ASM ADD DISK BRABO — binário FALSO do Grid Home (lê/grava /sim/mundo). by • DBA BRABO
+. /sim/lab/lib.sh
+if [[ ${1:-} == -l ]]; then echo "$LOCAL"; else for n in $NODES; do echo "$n"; done; fi

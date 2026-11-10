@@ -1,0 +1,11 @@
+#!/bin/bash
+# Simulador ASM ADD DISK BRABO — comando FALSO (lê/grava /sim/mundo). by • DBA BRABO
+. /sim/lab/lib.sh
+A=$M/aix.tsv   # hdisk|status|pvid|vg|reserve|unique_id|mb   (no nó remoto: nome trocado por aixmap.tsv)
+nome() { if [[ -n ${SIM_NO:-} ]]; then awk -F'|' -v h="$1" '$1==h{print $2; f=1} END{if(!f) print h}' "$M/aixmap.tsv"; else echo "$1"; fi; }
+lfil=""; fmt=""
+while (( $# )); do case $1 in -l) lfil=$2; shift 2 ;; -F) fmt=$2; shift 2 ;; *) shift ;; esac; done
+while IFS='|' read -r h st pv vg rp uid mb; do
+  n=$(nome "$h"); [[ -z $lfil || $lfil == "$n" ]] || continue
+  case $fmt in name) echo "$n" ;; status) echo "$st" ;; *) echo "$n $st 00-00-02 MPIO IBM 2076 FC Disk" ;; esac
+done < "$A"

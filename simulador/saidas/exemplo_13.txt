@@ -1,0 +1,110 @@
+[root@orarac01 dbabrabo]# ./asm_add_disk_brabo.sh -g RECO -d /dev/sdm --execute
+
+   ____  ____    _      ____  ____      _    ____   ___
+  |  _ \| __ )  / \    | __ )|  _ \    / \  | __ ) / _ \
+  | | | |  _ \ / _ \   |  _ \| |_) |  / _ \ |  _ \| | | |
+  | |_| | |_) / ___ \  | |_) |  _ <  / ___ \| |_) | |_| |
+  |____/|____/_/   \_\ |____/|_| \_\/_/   \_\____/ \___/
+  [1mASM ADD DISK BRABO[0m v1.1.0 (2026-11-10) — adição segura de discos no Oracle ASM
+  by • DBA BRABO — dbabrabo.com.br
+
+2026-11-10 22:00:01 [1;34m[INFO][0m Ação=add | modo=EXECUTE | host=orarac01 | usuário=root | SO=Linux
+2026-11-10 22:00:01 [1;34m[INFO][0m Linha de comando: ./asm_add_disk_brabo.sh -g RECO -d /dev/sdm --execute
+
+[1m==[ Ambiente Grid / ASM ]==[0m
+2026-11-10 22:00:01 [1;32m[ OK ][0m ASM: SID=+ASM1 versão=19.0.0.0.0 instâncias=2
+2026-11-10 22:00:01 [1;34m[INFO][0m Grid: user=grid home=/u01/app/19.0.0/grid base=/u01/app/grid
+2026-11-10 22:00:01 [1;34m[INFO][0m asm_power_limit=1 | asm_diskstring=/dev/asmdisks/*
+2026-11-10 22:00:01 [1;32m[ OK ][0m Cluster: RAC com 2 nós (orarac01 orarac02) | local=orarac01
+2026-11-10 22:00:01 [1;32m[ OK ][0m Execução remota: ssh (nós: orarac02)
+
+[1m==[ Diskgroup RECO ]==[0m
+2026-11-10 22:00:01 [1;32m[ OK ][0m DG=RECO tipo=EXTERN estado=MOUNTED discos=4 total=1048568MB livre=485120MB usable=485120MB
+2026-11-10 22:00:01 [1;34m[INFO][0m AU=4MB setor=512 compatible.asm=19.0.0.0.0 | tamanho de referência dos discos: 262142MB
+
+[1m==[ Método de provisionamento ]==[0m
+2026-11-10 22:00:01 [1;32m[ OK ][0m Método: udev | estilo de caminho: path
+2026-11-10 22:00:01 [1;32m[ OK ][0m Template udev: /etc/udev/rules.d/99-oracle-asmdevices.rules (RESULT==, regra de partição)
+2026-11-10 22:00:01 [1;34m[INFO][0m   KERNEL=="sd?1", SUBSYSTEM=="block", PROGRAM=="/usr/lib/udev/scsi_id -g -u -d /dev/$parent", RESULT=="36000c2961a1b2c3d4e5f60718293a4b5c1", SYMLINK+="asmdisks/DSK_RECO_01", OWNER="grid", GROUP="asmadmin", MODE="0660"
+2026-11-10 22:00:01 [1;34m[INFO][0m Permissão de referência: grid:asmadmin 660 (de /dev/asmdisks/DSK_RECO_01)
+2026-11-10 22:00:01 [1;34m[INFO][0m Discos atuais: particionados=4 inteiros=0 | tabela=gpt
+
+[1m==[ Validação dos discos (1) ]==[0m
+2026-11-10 22:00:01 [1;32m[ OK ][0m /dev/sdm -> /dev/sdm (disk, 262144MB, setor 512) by-id: scsi-36000c2961a9b2c3d4e5f60718293a4b5c9
+2026-11-10 22:00:01 [1;32m[ OK ][0m [orarac02] /dev/sdm visível como /dev/sdm e limpo
+
+[1m==[ Labels e nomes ASM ]==[0m
+2026-11-10 22:00:01 [1;34m[INFO][0m Padrão de label: prefixo='DSK_RECO_' padding=2 maior número em uso=4 → DSK_RECO_05
+2026-11-10 22:00:01 [1;34m[INFO][0m Convenção do DG: nome ASM = label
+2026-11-10 22:00:01 [1;32m[ OK ][0m Disco 1: label=DSK_RECO_05 nome=DSK_RECO_05 caminho=/dev/asmdisks/DSK_RECO_05
+
+[1m==[ Failgroups / Sites / Rebalance ]==[0m
+2026-11-10 22:00:01 [1;34m[INFO][0m Rebalance: power=1 (asm_power_limit) | acompanhar=não
+2026-11-10 22:00:01 [1;34m[INFO][0m Particionamento: yes (tabela gpt, início 1MiB)
+
+[1m==[ PLANO DE EXECUÇÃO ]==[0m
+  Host/Nó    : orarac01 (orarac01) | SO=Linux | modo=EXECUTE
+  Cluster    : RAC (orarac01 orarac02) | remoto=ssh
+  Diskgroup  : RECO (EXTERN) AU=4MB setor=512 compatible.asm=19.0.0.0.0
+  Método     : udev | partição=yes (gpt) | ação=add
+
+  #  DISCO                    DEVICE REAL                MB LABEL          NOME ASM                 FAILGROUP           
+  --------------------------------------------------------------------------------------------------------------------
+  1  /dev/sdm                 /dev/sdm               262144 DSK_RECO_05    DSK_RECO_05              (padrão)           
+     caminho ASM: /dev/asmdisks/DSK_RECO_05
+     by-id      : scsi-36000c2961a9b2c3d4e5f60718293a4b5c9
+     id         : ID_SERIAL=36000c2961a9b2c3d4e5f60718293a4b5c9 ID_WWN=0x6000c2961a9b2c3d 
+     outros nós : orarac02=/dev/sdm 
+
+  Capacidade : total 1048568MB -> ~1310712MB (+262144MB brutos) | livre 485120MB -> ~747264MB
+
+  Statement que será executado:
+    ALTER DISKGROUP RECO ADD
+      DISK
+        '/dev/asmdisks/DSK_RECO_05' NAME DSK_RECO_05
+      REBALANCE NOWAIT;
+
+[1m==[ CONFIRMAÇÃO ]==[0m
+  Esta operação vai alterar o storage e o diskgroup RECO em orarac01.
+[1;33m  Digite o nome do diskgroup (RECO): [0mRECO
+[1;33m  Digite a quantidade de discos (1): [0m1
+2026-11-10 22:00:02 [1;34m[INFO][0m Snapshot (antes): /var/log/dbabrabo/asm_add_disk_brabo_RECO_20261110_220001_snap_antes.txt
+
+[1m==[ Provisionando 1/1: /dev/sdm -> DSK_RECO_05 ]==[0m
+2026-11-10 22:00:02 [1;34m[INFO][0m EXEC: parted -s -a optimal /dev/sdm mklabel gpt mkpart primary 1MiB 100% 
+2026-11-10 22:00:02 [1;34m[INFO][0m EXEC: partprobe /dev/sdm 
+2026-11-10 22:00:02 [1;34m[INFO][0m EXEC: udevadm settle 
+2026-11-10 22:00:03 [1;32m[ OK ][0m Partição criada: /dev/sdm1
+2026-11-10 22:00:03 [1;34m[INFO][0m EXEC [orarac02]: partprobe /dev/sdm && udevadm settle
+2026-11-10 22:00:03 [1;34m[INFO][0m EXEC: append em /etc/udev/rules.d/99-oracle-asmdevices.rules: KERNEL=="sd?1", SUBSYSTEM=="block", PROGRAM=="/usr/lib/udev/scsi_id -g -u -d /dev/$parent", RESULT=="36000c2961a9b2c3d4e5f60718293a4b5c9", SYMLINK+="asmdisks/DSK_RECO_05", OWNER="grid", GROUP="asmadmin", MODE="0660"
+2026-11-10 22:00:03 [1;34m[INFO][0m EXEC: udevadm control --reload-rules 
+2026-11-10 22:00:03 [1;34m[INFO][0m EXEC: udevadm trigger --action=change --sysname-match=sdm1 
+2026-11-10 22:00:03 [1;34m[INFO][0m EXEC: udevadm settle 
+2026-11-10 22:00:03 [1;32m[ OK ][0m /dev/asmdisks/DSK_RECO_05 -> /dev/sdm1 (grid:asmadmin 660)
+2026-11-10 22:00:03 [1;34m[INFO][0m EXEC [orarac02]: [ -e '/etc/udev/rules.d/99-oracle-asmdevices.rules.bak_asmbrabo_20261110_220001' ] || cp -p '/etc/udev/rules.d/99-oracle-asmdevices.rules' '/etc/udev/rules.d/99-oracle-asmdevices.rules.bak_asmbrabo_20261110_220001'; printf '%s\n' KERNEL==\"sd\?1\"\,\ SUBSYSTEM==\"block\"\,\ PROGRAM==\"/usr/lib/udev/scsi_id\ -g\ -u\ -d\ /dev/\$parent\"\,\ RESULT==\"36000c2961a9b2c3d4e5f60718293a4b5c9\"\,\ SYMLINK+=\"asmdisks/DSK_RECO_05\"\,\ OWNER=\"grid\"\,\ GROUP=\"asmadmin\"\,\ MODE=\"0660\" >> '/etc/udev/rules.d/99-oracle-asmdevices.rules' && udevadm control --reload-rules && udevadm trigger --action=change --sysname-match=$(basename $(readlink -f $(lsblk -nlpo NAME,TYPE /dev/sdm | awk '$2=="part"{print $1; exit}'))) && udevadm settle && sleep 2 && ls -lL '/dev/asmdisks/DSK_RECO_05'
+brw-rw---- 1 grid asmadmin 8, 193 Nov 10 19:13 /dev/asmdisks/DSK_RECO_05
+
+[1m==[ Descoberta pelo ASM em TODAS as instâncias ]==[0m
+2026-11-10 22:00:05 [1;32m[ OK ][0m Todos os discos descobertos em 2 instância(s).
+
+[1m==[ ALTER DISKGROUP RECO ]==[0m
+    ALTER DISKGROUP RECO ADD
+      DISK
+        '/dev/asmdisks/DSK_RECO_05' NAME DSK_RECO_05
+      REBALANCE NOWAIT;
+2026-11-10 22:00:05 [1;32m[ OK ][0m ALTER DISKGROUP RECO ADD executado.
+
+[1m==[ Verificação pós-ADD ]==[0m
+2026-11-10 22:00:05 [1;32m[ OK ][0m DSK_RECO_05 /dev/asmdisks/DSK_RECO_05 MEMBER/ONLINE/NORMAL fg=DSK_RECO_05 262142MB
+2026-11-10 22:00:05 [1;34m[INFO][0m Snapshot (depois): /var/log/dbabrabo/asm_add_disk_brabo_RECO_20261110_220001_snap_depois.txt
+
+[1m==[ CONCLUÍDO ]==[0m
+  Discos adicionados ao RECO: DSK_RECO_05
+  Acompanhar : ./asm_add_disk_brabo.sh -g RECO --monitor
+  Status     : ./asm_add_disk_brabo.sh -g RECO --status
+  Power      : ./asm_add_disk_brabo.sh -g RECO --set-power <N> --execute
+  Reverter   : ALTER DISKGROUP RECO DROP DISK DSK_RECO_05 REBALANCE POWER <N>;  (só depois de avaliar espaço!)
+
+  Log completo: /var/log/dbabrabo/asm_add_disk_brabo_RECO_add_20261110_220001.log
+
+

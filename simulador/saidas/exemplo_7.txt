@@ -1,0 +1,111 @@
+[root@racdb01 dbabrabo]# ./asm_add_disk_brabo.sh --scan
+
+   ____  ____    _      ____  ____      _    ____   ___
+  |  _ \| __ )  / \    | __ )|  _ \    / \  | __ ) / _ \
+  | | | |  _ \ / _ \   |  _ \| |_) |  / _ \ |  _ \| | | |
+  | |_| | |_) / ___ \  | |_) |  _ <  / ___ \| |_) | |_| |
+  |____/|____/_/   \_\ |____/|_| \_\/_/   \_\____/ \___/
+  [1mASM ADD DISK BRABO[0m v1.1.0 (2026-11-10) — adição segura de discos no Oracle ASM
+  by • DBA BRABO — dbabrabo.com.br
+
+2026-11-10 22:00:00 [1;34m[INFO][0m Ação=scan | modo=DRY-RUN | host=racdb01 | usuário=root | SO=Linux
+2026-11-10 22:00:00 [1;34m[INFO][0m Linha de comando: ./asm_add_disk_brabo.sh --scan
+
+[1m==[ Ambiente Grid / ASM ]==[0m
+2026-11-10 22:00:00 [1;32m[ OK ][0m ASM: SID=+ASM1 versão=19.0.0.0.0 instâncias=2
+2026-11-10 22:00:00 [1;34m[INFO][0m Grid: user=grid home=/u01/app/19.0.0/grid base=/u01/app/grid
+2026-11-10 22:00:00 [1;34m[INFO][0m asm_power_limit=1 | asm_diskstring=ORCL:*
+
+[1m==[ Scan de discos do SO (somente leitura) ]==[0m
+  DEVICE                     TIPO           MB  SITUAÇÃO
+  -----------------------------------------------------------------------------------------
+  /dev/sda                   disk            0  EM USO/INAPTO: possui partições/dependentes: part:sda1 part:sda2 
+  /dev/sdb                   disk            0  EM USO/INAPTO: montado em /u01
+  /dev/sdc                   disk            0  EM USO/INAPTO: possui partições/dependentes: part:sdc1 
+  /dev/sdd                   disk            0  EM USO/INAPTO: possui partições/dependentes: part:sdd1 
+  /dev/sde                   disk            0  EM USO/INAPTO: possui partições/dependentes: part:sde1 
+  /dev/sdf                   disk            0  EM USO/INAPTO: possui partições/dependentes: part:sdf1 
+  /dev/sdg                   disk            0  EM USO/INAPTO: possui partições/dependentes: part:sdg1 
+  /dev/sdh                   disk            0  EM USO/INAPTO: possui partições/dependentes: part:sdh1 
+  /dev/sdi                   disk            0  EM USO/INAPTO: possui partições/dependentes: part:sdi1 
+  /dev/sdj                   disk            0  EM USO/INAPTO: possui partições/dependentes: part:sdj1 
+  /dev/sdk                   disk            0  EM USO/INAPTO: possui partições/dependentes: part:sdk1 
+  /dev/sdl                   disk            0  EM USO/INAPTO: possui partições/dependentes: part:sdl1 
+  /dev/sdm                   disk            0  EM USO/INAPTO: possui partições/dependentes: part:sdm1 
+  /dev/sdn                   disk            0  EM USO/INAPTO: possui partições/dependentes: part:sdn1 
+  /dev/sdo                   disk            0  EM USO/INAPTO: possui partições/dependentes: part:sdo1 
+  /dev/sdp                   disk            0  EM USO/INAPTO: possui partições/dependentes: part:sdp1 
+  /dev/sdq                   disk            0  EM USO/INAPTO: possui partições/dependentes: part:sdq1 
+  /dev/sdr                   disk            0  EM USO/INAPTO: possui partições/dependentes: part:sdr1 
+  /dev/sds                   disk            0  EM USO/INAPTO: possui partições/dependentes: part:sds1 
+  /dev/sdt                   disk       524288  [1;32mLIVRE[0m scsi-36000c29f1111111e8d2c41b9a7f03e5
+  /dev/sdu                   disk       524288  [1;32mLIVRE[0m scsi-36000c29f2222222e8d2c41b9a7f03e5
+  /dev/sdv                   disk       524288  EM USO/INAPTO: NÃO está zerado (bytes não-nulos: início=23, fim=23). Pode ter dados antigos. Se tiver CERTEZA use --allow-dirty
+  /dev/sdw                   disk       262144  [1;32mLIVRE[0m scsi-36000c29f4444444e8d2c41b9a7f03e5
+  /dev/sdx                   disk            0  EM USO/INAPTO: possui HEADER ASM (status/grupo: KFDHDR_MEMBER OLD_DATA)
+
+[1m==[ Discos que o ASM enxerga fora de diskgroup (grupo 0) ]==[0m
+
+  Log completo: /var/log/dbabrabo/asm_add_disk_brabo_NODG_scan_20261110_220000.log
+
+
+[root@racdb01 dbabrabo]# ./asm_add_disk_brabo.sh --rescan --execute
+
+   ____  ____    _      ____  ____      _    ____   ___
+  |  _ \| __ )  / \    | __ )|  _ \    / \  | __ ) / _ \
+  | | | |  _ \ / _ \   |  _ \| |_) |  / _ \ |  _ \| | | |
+  | |_| | |_) / ___ \  | |_) |  _ <  / ___ \| |_) | |_| |
+  |____/|____/_/   \_\ |____/|_| \_\/_/   \_\____/ \___/
+  [1mASM ADD DISK BRABO[0m v1.1.0 (2026-11-10) — adição segura de discos no Oracle ASM
+  by • DBA BRABO — dbabrabo.com.br
+
+2026-11-10 22:00:02 [1;34m[INFO][0m Ação=rescan | modo=EXECUTE | host=racdb01 | usuário=root | SO=Linux
+2026-11-10 22:00:02 [1;34m[INFO][0m Linha de comando: ./asm_add_disk_brabo.sh --rescan --execute
+
+[1m==[ Ambiente Grid / ASM ]==[0m
+2026-11-10 22:00:02 [1;32m[ OK ][0m ASM: SID=+ASM1 versão=19.0.0.0.0 instâncias=2
+2026-11-10 22:00:02 [1;34m[INFO][0m Grid: user=grid home=/u01/app/19.0.0/grid base=/u01/app/grid
+2026-11-10 22:00:02 [1;34m[INFO][0m asm_power_limit=1 | asm_diskstring=ORCL:*
+2026-11-10 22:00:02 [1;32m[ OK ][0m Cluster: RAC com 2 nós (racdb01 racdb02) | local=racdb01
+2026-11-10 22:00:02 [1;32m[ OK ][0m Execução remota: ssh (nós: racdb02)
+
+[1m==[ Rescan de barramento ]==[0m
+2026-11-10 22:00:02 [1;34m[INFO][0m EXEC: sh -c echo\ \'-\ -\ -\'\ \>\ /sys/class/scsi_host/host0/scan 
+2026-11-10 22:00:02 [1;34m[INFO][0m EXEC: sh -c echo\ \'-\ -\ -\'\ \>\ /sys/class/scsi_host/host1/scan 
+2026-11-10 22:00:02 [1;34m[INFO][0m EXEC: sh -c echo\ \'-\ -\ -\'\ \>\ /sys/class/scsi_host/host2/scan 
+2026-11-10 22:00:02 [1;34m[INFO][0m EXEC: udevadm settle 
+2026-11-10 22:00:02 [1;34m[INFO][0m EXEC [racdb02]: for h in /sys/class/scsi_host/host*/scan; do echo '- - -' > $h; done; udevadm settle
+
+[1m==[ Scan de discos do SO (somente leitura) ]==[0m
+  DEVICE                     TIPO           MB  SITUAÇÃO
+  -----------------------------------------------------------------------------------------
+  /dev/sda                   disk            0  EM USO/INAPTO: possui partições/dependentes: part:sda1 part:sda2 
+  /dev/sdb                   disk            0  EM USO/INAPTO: montado em /u01
+  /dev/sdc                   disk            0  EM USO/INAPTO: possui partições/dependentes: part:sdc1 
+  /dev/sdd                   disk            0  EM USO/INAPTO: possui partições/dependentes: part:sdd1 
+  /dev/sde                   disk            0  EM USO/INAPTO: possui partições/dependentes: part:sde1 
+  /dev/sdf                   disk            0  EM USO/INAPTO: possui partições/dependentes: part:sdf1 
+  /dev/sdg                   disk            0  EM USO/INAPTO: possui partições/dependentes: part:sdg1 
+  /dev/sdh                   disk            0  EM USO/INAPTO: possui partições/dependentes: part:sdh1 
+  /dev/sdi                   disk            0  EM USO/INAPTO: possui partições/dependentes: part:sdi1 
+  /dev/sdj                   disk            0  EM USO/INAPTO: possui partições/dependentes: part:sdj1 
+  /dev/sdk                   disk            0  EM USO/INAPTO: possui partições/dependentes: part:sdk1 
+  /dev/sdl                   disk            0  EM USO/INAPTO: possui partições/dependentes: part:sdl1 
+  /dev/sdm                   disk            0  EM USO/INAPTO: possui partições/dependentes: part:sdm1 
+  /dev/sdn                   disk            0  EM USO/INAPTO: possui partições/dependentes: part:sdn1 
+  /dev/sdo                   disk            0  EM USO/INAPTO: possui partições/dependentes: part:sdo1 
+  /dev/sdp                   disk            0  EM USO/INAPTO: possui partições/dependentes: part:sdp1 
+  /dev/sdq                   disk            0  EM USO/INAPTO: possui partições/dependentes: part:sdq1 
+  /dev/sdr                   disk            0  EM USO/INAPTO: possui partições/dependentes: part:sdr1 
+  /dev/sds                   disk            0  EM USO/INAPTO: possui partições/dependentes: part:sds1 
+  /dev/sdt                   disk       524288  [1;32mLIVRE[0m scsi-36000c29f1111111e8d2c41b9a7f03e5
+  /dev/sdu                   disk       524288  [1;32mLIVRE[0m scsi-36000c29f2222222e8d2c41b9a7f03e5
+  /dev/sdv                   disk       524288  EM USO/INAPTO: NÃO está zerado (bytes não-nulos: início=23, fim=23). Pode ter dados antigos. Se tiver CERTEZA use --allow-dirty
+  /dev/sdw                   disk       262144  [1;32mLIVRE[0m scsi-36000c29f4444444e8d2c41b9a7f03e5
+  /dev/sdx                   disk            0  EM USO/INAPTO: possui HEADER ASM (status/grupo: KFDHDR_MEMBER OLD_DATA)
+
+[1m==[ Discos que o ASM enxerga fora de diskgroup (grupo 0) ]==[0m
+
+  Log completo: /var/log/dbabrabo/asm_add_disk_brabo_NODG_rescan_20261110_220002.log
+
+

@@ -1,0 +1,70 @@
+[root@racdb01 dbabrabo]# ./asm_add_disk_brabo.sh -g DATA -d /dev/sdt --execute < /dev/null
+
+   ____  ____    _      ____  ____      _    ____   ___
+  |  _ \| __ )  / \    | __ )|  _ \    / \  | __ ) / _ \
+  | | | |  _ \ / _ \   |  _ \| |_) |  / _ \ |  _ \| | | |
+  | |_| | |_) / ___ \  | |_) |  _ <  / ___ \| |_) | |_| |
+  |____/|____/_/   \_\ |____/|_| \_\/_/   \_\____/ \___/
+  ASM ADD DISK BRABO v1.1.0 (2026-11-10) — adição segura de discos no Oracle ASM
+  by • DBA BRABO — dbabrabo.com.br
+
+2026-11-10 22:00:01 [INFO] Ação=add | modo=EXECUTE | host=racdb01 | usuário=root | SO=Linux
+2026-11-10 22:00:01 [INFO] Linha de comando: ./asm_add_disk_brabo.sh -g DATA -d /dev/sdt --execute
+
+==[ Ambiente Grid / ASM ]==
+2026-11-10 22:00:01 [ OK ] ASM: SID=+ASM1 versão=19.0.0.0.0 instâncias=2
+2026-11-10 22:00:01 [INFO] Grid: user=grid home=/u01/app/19.0.0/grid base=/u01/app/grid
+2026-11-10 22:00:01 [INFO] asm_power_limit=1 | asm_diskstring=ORCL:*
+2026-11-10 22:00:01 [ OK ] Cluster: RAC com 2 nós (racdb01 racdb02) | local=racdb01
+2026-11-10 22:00:01 [ OK ] Execução remota: ssh (nós: racdb02)
+
+==[ Diskgroup DATA ]==
+2026-11-10 22:00:01 [ OK ] DG=DATA tipo=EXTERN estado=MOUNTED discos=16 total=8388576MB livre=1449984MB usable=1449984MB
+2026-11-10 22:00:01 [INFO] AU=4MB setor=512 compatible.asm=19.0.0.0.0 | tamanho de referência dos discos: 524286MB
+
+==[ Método de provisionamento ]==
+2026-11-10 22:00:01 [ OK ] Método: asmlib | estilo de caminho: orcl
+2026-11-10 22:00:03 [INFO] Discos atuais: particionados=16 inteiros=0 | tabela=gpt
+
+==[ Validação dos discos (1) ]==
+2026-11-10 22:00:03 [ OK ] /dev/sdt -> /dev/sdt (disk, 524288MB, setor 512) by-id: scsi-36000c29f1111111e8d2c41b9a7f03e5
+2026-11-10 22:00:03 [ OK ] [racdb02] /dev/sdt visível como /dev/sdt e limpo
+
+==[ Labels e nomes ASM ]==
+2026-11-10 22:00:03 [INFO] Padrão de label: prefixo='DSK_DATA_' padding=2 maior número em uso=16 → DSK_DATA_17
+2026-11-10 22:00:03 [INFO] Convenção do DG: nome ASM = label
+2026-11-10 22:00:03 [ OK ] Disco 1: label=DSK_DATA_17 nome=DSK_DATA_17 caminho=ORCL:DSK_DATA_17
+
+==[ Failgroups / Sites / Rebalance ]==
+2026-11-10 22:00:03 [INFO] Rebalance: power=1 (asm_power_limit) | acompanhar=não
+2026-11-10 22:00:03 [INFO] Particionamento: yes (tabela gpt, início 1MiB)
+
+==[ PLANO DE EXECUÇÃO ]==
+  Host/Nó    : racdb01 (racdb01) | SO=Linux | modo=EXECUTE
+  Cluster    : RAC (racdb01 racdb02) | remoto=ssh
+  Diskgroup  : DATA (EXTERN) AU=4MB setor=512 compatible.asm=19.0.0.0.0
+  Método     : asmlib | partição=yes (gpt) | ação=add
+
+  #  DISCO                    DEVICE REAL                MB LABEL          NOME ASM                 FAILGROUP           
+  --------------------------------------------------------------------------------------------------------------------
+  1  /dev/sdt                 /dev/sdt               524288 DSK_DATA_17    DSK_DATA_17              (padrão)           
+     caminho ASM: ORCL:DSK_DATA_17
+     by-id      : scsi-36000c29f1111111e8d2c41b9a7f03e5
+     id         : ID_SERIAL=36000c29f1111111e8d2c41b9a7f03e5 ID_WWN=0x6000c29f1111111e8d2 
+     outros nós : racdb02=/dev/sdt 
+
+  Capacidade : total 8388576MB -> ~8912864MB (+524288MB brutos) | livre 1449984MB -> ~1974272MB
+
+  Statement que será executado:
+    ALTER DISKGROUP DATA ADD
+      DISK
+        'ORCL:DSK_DATA_17' NAME DSK_DATA_17
+      REBALANCE NOWAIT;
+
+==[ CONFIRMAÇÃO ]==
+  Esta operação vai alterar o storage e o diskgroup DATA em racdb01.
+2026-11-10 22:00:03 [ERRO] Sem terminal interativo para a confirmação. Use --yes (com MUITO cuidado).
+
+  Log completo: /var/log/dbabrabo/asm_add_disk_brabo_DATA_add_20261110_220000.log
+
+

@@ -1,0 +1,4 @@
+#!/bin/bash
+# Simulador ASM ADD DISK BRABO — comando FALSO (lê/grava /sim/mundo). by • DBA BRABO
+. /sim/lab/lib.sh
+awk -F'|' -v d="$2" '$1==d{print $7}' "$M/aix.tsv"

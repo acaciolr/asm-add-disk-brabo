@@ -1,0 +1,36 @@
+[root@racdb01 dbabrabo]# ./asm_add_disk_brabo.sh -g DATA -d /dev/sdx
+
+   ____  ____    _      ____  ____      _    ____   ___
+  |  _ \| __ )  / \    | __ )|  _ \    / \  | __ ) / _ \
+  | | | |  _ \ / _ \   |  _ \| |_) |  / _ \ |  _ \| | | |
+  | |_| | |_) / ___ \  | |_) |  _ <  / ___ \| |_) | |_| |
+  |____/|____/_/   \_\ |____/|_| \_\/_/   \_\____/ \___/
+  [1mASM ADD DISK BRABO[0m v1.1.0 (2026-11-10) — adição segura de discos no Oracle ASM
+  by • DBA BRABO — dbabrabo.com.br
+
+2026-11-10 22:00:00 [1;34m[INFO][0m Ação=add | modo=DRY-RUN | host=racdb01 | usuário=root | SO=Linux
+2026-11-10 22:00:00 [1;34m[INFO][0m Linha de comando: ./asm_add_disk_brabo.sh -g DATA -d /dev/sdx
+
+[1m==[ Ambiente Grid / ASM ]==[0m
+2026-11-10 22:00:00 [1;32m[ OK ][0m ASM: SID=+ASM1 versão=19.0.0.0.0 instâncias=2
+2026-11-10 22:00:00 [1;34m[INFO][0m Grid: user=grid home=/u01/app/19.0.0/grid base=/u01/app/grid
+2026-11-10 22:00:00 [1;34m[INFO][0m asm_power_limit=1 | asm_diskstring=ORCL:*
+2026-11-10 22:00:00 [1;32m[ OK ][0m Cluster: RAC com 2 nós (racdb01 racdb02) | local=racdb01
+2026-11-10 22:00:00 [1;32m[ OK ][0m Execução remota: ssh (nós: racdb02)
+
+[1m==[ Diskgroup DATA ]==[0m
+2026-11-10 22:00:00 [1;32m[ OK ][0m DG=DATA tipo=EXTERN estado=MOUNTED discos=16 total=8388576MB livre=1449984MB usable=1449984MB
+2026-11-10 22:00:00 [1;34m[INFO][0m AU=4MB setor=512 compatible.asm=19.0.0.0.0 | tamanho de referência dos discos: 524286MB
+
+[1m==[ Método de provisionamento ]==[0m
+2026-11-10 22:00:00 [1;32m[ OK ][0m Método: asmlib | estilo de caminho: orcl
+2026-11-10 22:00:02 [1;34m[INFO][0m Discos atuais: particionados=16 inteiros=0 | tabela=gpt
+
+[1m==[ Validação dos discos (1) ]==[0m
+2026-11-10 22:00:02 [1;31m[ERRO][0m /dev/sdx: possui HEADER ASM (status/grupo: KFDHDR_MEMBER OLD_DATA)
+2026-11-10 22:00:02 [1;31m[ERRO][0m Disco(s) reprovado(s) na validação — NADA foi alterado:
+      - /dev/sdx: possui HEADER ASM (status/grupo: KFDHDR_MEMBER OLD_DATA)
+
+  Log completo: /var/log/dbabrabo/asm_add_disk_brabo_DATA_add_20261110_220000.log
+
+
