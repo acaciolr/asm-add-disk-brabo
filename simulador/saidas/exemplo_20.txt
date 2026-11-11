@@ -5,7 +5,7 @@
   | | | |  _ \ / _ \   |  _ \| |_) |  / _ \ |  _ \| | | |
   | |_| | |_) / ___ \  | |_) |  _ <  / ___ \| |_) | |_| |
   |____/|____/_/   \_\ |____/|_| \_\/_/   \_\____/ \___/
-  [1mASM ADD DISK BRABO[0m v1.1.0 (2026-11-10) — adição segura de discos no Oracle ASM
+  [1mASM ADD DISK BRABO[0m v1.3.1 (2026-11-11) — adição segura de discos no Oracle ASM
   by • DBA BRABO — dbabrabo.com.br
 
 2026-11-10 22:00:00 [1;34m[INFO][0m Ação=add-only | modo=EXECUTE | host=solsrv01 | usuário=root | SO=SunOS
@@ -19,10 +19,20 @@
 
 [1m==[ Diskgroup DATA ]==[0m
 2026-11-10 22:00:01 [1;32m[ OK ][0m DG=DATA tipo=EXTERN estado=MOUNTED discos=7 total=1433600MB livre=220500MB usable=220500MB
-2026-11-10 22:00:01 [1;34m[INFO][0m AU=1MB setor=512 compatible.asm=19.0.0.0.0 | tamanho de referência dos discos: 204800MB
+2026-11-10 22:00:01 [1;34m[INFO][0m AU=1MB setor=512 compatible.asm=19.0.0.0.0 | discos: mais comum 204800MB, faixa 204800-204800MB
+
+[1m==[ Validação do Clusterware (estilo rac-status) ]==[0m
+2026-11-10 22:00:01 [1;32m[ OK ][0m Clusterware: 7 recursos, nenhum com STATE≠TARGET; 0 reiniciado(s) nas últimas 24 h. (tabela completa: --rac-status)
+2026-11-10 22:00:01 [1;34m[INFO][0m Foto do Clusterware (antes): /var/log/dbabrabo/asm_add_disk_brabo_DATA_20261110_220000_crs_antes.txt
+
+[1m==[ Espaço do DATA antes (estilo asmdu) ]==[0m
+  DiskGroup  Redund.    Total G    Livre G  Reserva G   Utiliz. G  %Livre  uso (espelhado)        Disc. Rebal Voting
+  -----------------------------------------------------------------------------------------------------------------
+  DATA       EXTERN      1400.0      215.3        0.0 [1;33m      215.3     15%[0m  [#################...]     7     -      N
 
 [1m==[ Método de provisionamento ]==[0m
 2026-11-10 22:00:01 [1;32m[ OK ][0m Método: path | estilo de caminho: path
+2026-11-10 22:00:01 [1;34m[INFO][0m Devices do ASM/ASMLib/AFD protegidos (maj:min): 8
 
 [1m==[ Discos já provisionados (--add-only) ]==[0m
 2026-11-10 22:00:01 [1;32m[ OK ][0m /dev/rdsk/c0t5d0s6: visível em 1/1 instâncias, 204800MB
@@ -33,6 +43,7 @@
 
 [1m==[ Failgroups / Sites / Rebalance ]==[0m
 2026-11-10 22:00:01 [1;34m[INFO][0m Rebalance: power=1 (asm_power_limit) | acompanhar=não
+2026-11-10 22:00:01 [1;34m[INFO][0m Cláusula SIZE: não usada (compatible.asm 19.0.0.0.0 < 23: o ASM aceita discos de tamanhos diferentes).
 
 [1m==[ PLANO DE EXECUÇÃO ]==[0m
   Host/Nó    : solsrv01 (solsrv01) | SO=SunOS | modo=EXECUTE
@@ -72,6 +83,16 @@
 [1m==[ Verificação pós-ADD ]==[0m
 2026-11-10 22:00:02 [1;32m[ OK ][0m DATA_0007 /dev/rdsk/c0t5d0s6 MEMBER/ONLINE/NORMAL fg=DATA_0007 204800MB
 2026-11-10 22:00:02 [1;34m[INFO][0m Snapshot (depois): /var/log/dbabrabo/asm_add_disk_brabo_DATA_20261110_220000_snap_depois.txt
+
+[1m==[ Clusterware depois da mudança (comparação com a foto de antes) ]==[0m
+2026-11-10 22:00:02 [1;32m[ OK ][0m Clusterware: nenhum recurso mudou de estado, sumiu ou reiniciou durante a mudança.
+2026-11-10 22:00:02 [1;34m[INFO][0m Foto do Clusterware (depois): /var/log/dbabrabo/asm_add_disk_brabo_DATA_20261110_220000_crs_depois.txt
+
+[1m==[ Espaço do DATA depois (estilo asmdu) ]==[0m
+  DiskGroup  Redund.    Total G    Livre G  Reserva G   Utiliz. G  %Livre  uso (espelhado)        Disc. Rebal Voting
+  -----------------------------------------------------------------------------------------------------------------
+  DATA       EXTERN      1600.0      415.3        0.0 [1;32m      415.3     25%[0m  [###############.....]     8   SIM      N
+2026-11-10 22:00:02 [1;34m[INFO][0m O rebalance ainda pode estar rodando: o utilizável final aparece depois dele (--monitor / --asmdu -g DATA).
 
 [1m==[ CONCLUÍDO ]==[0m
   Discos adicionados ao DATA: DATA_0007

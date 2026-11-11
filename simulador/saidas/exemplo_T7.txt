@@ -5,7 +5,7 @@
   | | | |  _ \ / _ \   |  _ \| |_) |  / _ \ |  _ \| | | |
   | |_| | |_) / ___ \  | |_) |  _ <  / ___ \| |_) | |_| |
   |____/|____/_/   \_\ |____/|_| \_\/_/   \_\____/ \___/
-  [1mASM ADD DISK BRABO[0m v1.1.0 (2026-11-10) — adição segura de discos no Oracle ASM
+  [1mASM ADD DISK BRABO[0m v1.3.1 (2026-11-11) — adição segura de discos no Oracle ASM
   by • DBA BRABO — dbabrabo.com.br
 
 2026-11-10 22:00:00 [1;34m[INFO][0m Ação=add | modo=DRY-RUN | host=exa01dbadm01 | usuário=root | SO=Linux
@@ -18,9 +18,9 @@
 2026-11-10 22:00:00 [1;32m[ OK ][0m Cluster: RAC com 2 nós (exa01dbadm01 exa01dbadm02) | local=exa01dbadm01
 
 [1m==[ Diskgroup DATA ]==[0m
-2026-11-10 22:00:01 [1;32m[ OK ][0m DG=DATA tipo=HIGH estado=MOUNTED discos=36 total=205037568MB livre=93600000MB usable=8418048MB
-2026-11-10 22:00:01 [1;34m[INFO][0m AU=4MB setor=512 compatible.asm=19.0.0.0.0 | tamanho de referência dos discos: 5695488MB
-2026-11-10 22:00:01 [1;31m[ERRO][0m Exadata Cloud (ExaCS / ExaCC / ExaDB-D) detectado (dbaascli/creg). A storage é gerenciada pela automação da Oracle: escale pelo console OCI ou dbaascli. Este script NÃO altera griddisks/diskgroups nesses ambientes.
+2026-11-10 22:00:00 [1;32m[ OK ][0m DG=DATA tipo=HIGH estado=MOUNTED discos=36 total=205037568MB livre=93600000MB usable=8418048MB
+2026-11-10 22:00:00 [1;34m[INFO][0m AU=4MB setor=512 compatible.asm=19.0.0.0.0 | discos: mais comum 5695488MB, faixa 5695488-5695488MB
+2026-11-10 22:00:00 [1;31m[ERRO][0m Exadata Cloud (ExaCS / ExaCC / ExaDB-D) detectado (dbaascli/creg). A storage é gerenciada pela automação da Oracle: escale pelo console OCI ou dbaascli. Este script NÃO altera griddisks/diskgroups nesses ambientes.
 
   Log completo: /var/log/dbabrabo/asm_add_disk_brabo_DATA_add_20261110_220000.log
 

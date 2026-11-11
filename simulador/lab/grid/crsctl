@@ -1,0 +1,56 @@
+#!/bin/bash
+# Simulador ASM ADD DISK BRABO — crsctl FALSO: recursos do Clusterware montados a
+# partir do mundo (nós, diskgroups, banco). Extras/divergências: $M/crs_extra.tsv
+#   nome|tipo|nó|STATE|TARGET|detalhe     (nó "-" = recurso sem nó)
+# by • DBA BRABO
+. /sim/lab/lib.sh
+DB=${CRS_DB:-orcl}; H=/u01/app/oracle/product/19.0.0/dbhome_1
+[[ $VER == 23* ]] && H=/u01/app/oracle/product/23.0.0/dbhome_1
+# último restart: 3 dias antes do relógio virtual (nada reiniciou nas últimas 24 h)
+LR=$(/usr/bin/date -d "@$(( $(cat "$M/relogio_base") - 259200 ))" '+%m/%d/%Y %H:%M:%S')
+
+recursos() {  # nome|tipo|nó|STATE|TARGET|detalhe
+  local n g dgs
+  dgs=$(cut -d'|' -f2 "$M/dg.tsv")
+  if (( NINST > 1 )); then
+    for n in $NODES; do
+      echo "ora.asm(ora.asmgroup)|ora.asm.type|$n|ONLINE|ONLINE|Started"
+      for g in $dgs; do echo "ora.$g.dg(ora.asmgroup)|ora.diskgroup.type|$n|ONLINE|ONLINE|"; done
+      echo "ora.ASMNET1LSNR_ASM.lsnr(ora.asmgroup)|ora.asm_listener.type|$n|ONLINE|ONLINE|"
+      echo "ora.LISTENER.lsnr|ora.listener.type|$n|ONLINE|ONLINE|"
+      echo "ora.net1.network|ora.network.type|$n|ONLINE|ONLINE|"
+      echo "ora.ons|ora.ons.type|$n|ONLINE|ONLINE|"
+      echo "ora.$n.vip|ora.cluster_vip_net1.type|$n|ONLINE|ONLINE|"
+      echo "ora.$DB.db|ora.database.type|$n|ONLINE|ONLINE|Open,HOME=$H"
+      echo "ora.$DB.app.svc|ora.service.type|$n|ONLINE|ONLINE|"
+    done
+    set -- $NODES
+    echo "ora.scan1.vip|ora.scan_vip.type|$1|ONLINE|ONLINE|"
+    echo "ora.LISTENER_SCAN1.lsnr|ora.scan_listener.type|$1|ONLINE|ONLINE|"
+    echo "ora.cvu|ora.cvu.type|$1|ONLINE|ONLINE|"
+    echo "ora.cdp1.cdp|ora.cdp.type|-|OFFLINE|OFFLINE|"
+  else
+    n=$LOCAL
+    echo "ora.asm|ora.asm.type|$n|ONLINE|ONLINE|Started"
+    for g in $dgs; do echo "ora.$g.dg|ora.diskgroup.type|$n|ONLINE|ONLINE|"; done
+    echo "ora.LISTENER.lsnr|ora.listener.type|$n|ONLINE|ONLINE|"
+    echo "ora.cssd|ora.cssd.type|$n|ONLINE|ONLINE|"
+    echo "ora.evmd|ora.evm.type|$n|ONLINE|ONLINE|"
+    echo "ora.ons|ora.ons.type|$n|OFFLINE|OFFLINE|"
+    echo "ora.$DB.db|ora.database.type|$n|ONLINE|ONLINE|Open,HOME=$H"
+  fi
+  [[ -s $M/crs_extra.tsv ]] && cat "$M/crs_extra.tsv"
+}
+
+case "$*" in
+  "stat res -p -attr NAME,ENABLED")
+    recursos | awk -F'|' '!v[$1]++ {printf "NAME=%s\nENABLED=%s\n\n", $1, ($1 ~ /cdp/ ? 0 : 1)}' ;;
+  "stat res -v -attr"*)
+    recursos | awk -F'|' -v lr="$LR" '{
+      printf "NAME=%s\nTYPE=%s\nLAST_SERVER=%s\nSTATE=%s%s\nTARGET=%s\nSTATE_DETAILS=%s\nLAST_RESTART=%s\n\n",
+        $1, $2, ($3=="-" ? "" : $3), $4, ($4=="ONLINE" ? " on " $3 : ""), $5, $6, ($4=="ONLINE" ? lr : "")}' ;;
+  "query crs activeversion -f")
+    (( NINST > 1 )) || { echo "CRS-4554: Oracle Clusterware is not configured for this node"; exit 1; }
+    echo "Oracle Clusterware active version on the cluster is [$VER]. The cluster upgrade state is [NORMAL]. The cluster active patch level is [3976270074]." ;;
+  *) echo "CRS-4000: Command not supported by the simulator: $*"; exit 1 ;;
+esac

@@ -5,37 +5,49 @@
   | | | |  _ \ / _ \   |  _ \| |_) |  / _ \ |  _ \| | | |
   | |_| | |_) / ___ \  | |_) |  _ <  / ___ \| |_) | |_| |
   |____/|____/_/   \_\ |____/|_| \_\/_/   \_\____/ \___/
-  [1mASM ADD DISK BRABO[0m v1.1.0 (2026-11-10) — adição segura de discos no Oracle ASM
+  [1mASM ADD DISK BRABO[0m v1.3.1 (2026-11-11) — adição segura de discos no Oracle ASM
   by • DBA BRABO — dbabrabo.com.br
 
-2026-11-10 22:00:00 [1;34m[INFO][0m Ação=add | modo=EXECUTE | host=ip-10-20-1-25 | usuário=root | SO=Linux
-2026-11-10 22:00:00 [1;34m[INFO][0m Linha de comando: ./asm_add_disk_brabo.sh -g DATA -d /dev/disk/by-id/nvme-Amazon_Elastic_Block_Store_vol0abc123 -p 4 --execute
+2026-11-10 22:00:01 [1;34m[INFO][0m Ação=add | modo=EXECUTE | host=ip-10-20-1-25 | usuário=root | SO=Linux
+2026-11-10 22:00:01 [1;34m[INFO][0m Linha de comando: ./asm_add_disk_brabo.sh -g DATA -d /dev/disk/by-id/nvme-Amazon_Elastic_Block_Store_vol0abc123 -p 4 --execute
 
 [1m==[ Ambiente Grid / ASM ]==[0m
-2026-11-10 22:00:00 [1;32m[ OK ][0m ASM: SID=+ASM1 versão=19.0.0.0.0 instâncias=1
-2026-11-10 22:00:00 [1;34m[INFO][0m Grid: user=grid home=/u01/app/19.0.0/grid base=/u01/app/grid
-2026-11-10 22:00:00 [1;34m[INFO][0m asm_power_limit=1 | asm_diskstring=ORCL:*
-2026-11-10 22:00:00 [1;32m[ OK ][0m Standalone / Oracle Restart (nó ip-10-20-1-25)
+2026-11-10 22:00:01 [1;32m[ OK ][0m ASM: SID=+ASM1 versão=19.0.0.0.0 instâncias=1
+2026-11-10 22:00:01 [1;34m[INFO][0m Grid: user=grid home=/u01/app/19.0.0/grid base=/u01/app/grid
+2026-11-10 22:00:01 [1;34m[INFO][0m asm_power_limit=1 | asm_diskstring=ORCL:*
+2026-11-10 22:00:01 [1;32m[ OK ][0m Standalone / Oracle Restart (nó ip-10-20-1-25)
 
 [1m==[ Diskgroup DATA ]==[0m
-2026-11-10 22:00:00 [1;32m[ OK ][0m DG=DATA tipo=EXTERN estado=MOUNTED discos=4 total=4194296MB livre=620480MB usable=620480MB
-2026-11-10 22:00:00 [1;34m[INFO][0m AU=4MB setor=512 compatible.asm=19.0.0.0.0 | tamanho de referência dos discos: 1048574MB
+2026-11-10 22:00:01 [1;32m[ OK ][0m DG=DATA tipo=EXTERN estado=MOUNTED discos=4 total=4194296MB livre=620480MB usable=620480MB
+2026-11-10 22:00:01 [1;34m[INFO][0m AU=4MB setor=512 compatible.asm=19.0.0.0.0 | discos: mais comum 1048574MB, faixa 1048574-1048574MB
+
+[1m==[ Validação do Clusterware (estilo rac-status) ]==[0m
+2026-11-10 22:00:01 [1;32m[ OK ][0m Clusterware: 7 recursos, nenhum com STATE≠TARGET; 0 reiniciado(s) nas últimas 24 h. (tabela completa: --rac-status)
+2026-11-10 22:00:01 [1;34m[INFO][0m Foto do Clusterware (antes): /var/log/dbabrabo/asm_add_disk_brabo_DATA_20261110_220001_crs_antes.txt
+
+[1m==[ Espaço do DATA antes (estilo asmdu) ]==[0m
+  DiskGroup  Redund.    Total G    Livre G  Reserva G   Utiliz. G  %Livre  uso (espelhado)        Disc. Rebal Voting
+  -----------------------------------------------------------------------------------------------------------------
+  DATA       EXTERN      4096.0      605.9        0.0 [1;33m      605.9     14%[0m  [##################..]     4     -      N
 
 [1m==[ Método de provisionamento ]==[0m
-2026-11-10 22:00:00 [1;32m[ OK ][0m Método: asmlib | estilo de caminho: orcl
+2026-11-10 22:00:01 [1;32m[ OK ][0m Método: asmlib | estilo de caminho: orcl
+2026-11-10 22:00:01 [1;34m[INFO][0m Permissão de referência dos discos ASMLib: grid:asmadmin:660 (de /dev/oracleasm/disks/DATA01) — ASMLib v2: o driver cuida da permissão
+2026-11-10 22:00:01 [1;34m[INFO][0m Devices do ASM/ASMLib/AFD protegidos (maj:min): 12
 2026-11-10 22:00:01 [1;34m[INFO][0m Discos atuais: particionados=4 inteiros=0 | tabela=gpt
 
 [1m==[ Validação dos discos (1) ]==[0m
-2026-11-10 22:00:01 [1;32m[ OK ][0m /dev/disk/by-id/nvme-Amazon_Elastic_Block_Store_vol0abc123 -> /dev/nvme5n1 (disk, 1048576MB, setor 512) by-id: nvme-Amazon_Elastic_Block_Store_vol0abc123
+2026-11-10 22:00:02 [1;32m[ OK ][0m /dev/disk/by-id/nvme-Amazon_Elastic_Block_Store_vol0abc123 -> /dev/nvme5n1 (disk, 1048576MB, setor 512) by-id: nvme-Amazon_Elastic_Block_Store_vol0abc123
 
 [1m==[ Labels e nomes ASM ]==[0m
-2026-11-10 22:00:01 [1;34m[INFO][0m Padrão de label: prefixo='DATA' padding=2 maior número em uso=4 → DATA05
-2026-11-10 22:00:01 [1;34m[INFO][0m Convenção do DG: nome ASM = label
-2026-11-10 22:00:01 [1;32m[ OK ][0m Disco 1: label=DATA05 nome=DATA05 caminho=ORCL:DATA05
+2026-11-10 22:00:02 [1;34m[INFO][0m Padrão de label: prefixo='DATA' padding=2 maior número em uso=4 → DATA05
+2026-11-10 22:00:02 [1;34m[INFO][0m Convenção do DG: nome ASM = label
+2026-11-10 22:00:02 [1;32m[ OK ][0m Disco 1: label=DATA05 nome=DATA05 caminho=ORCL:DATA05
 
 [1m==[ Failgroups / Sites / Rebalance ]==[0m
-2026-11-10 22:00:01 [1;34m[INFO][0m Rebalance: power=4 | acompanhar=não
-2026-11-10 22:00:01 [1;34m[INFO][0m Particionamento: yes (tabela gpt, início 1MiB)
+2026-11-10 22:00:02 [1;34m[INFO][0m Rebalance: power=4 | acompanhar=não
+2026-11-10 22:00:02 [1;34m[INFO][0m Cláusula SIZE: não usada (compatible.asm 19.0.0.0.0 < 23: o ASM aceita discos de tamanhos diferentes).
+2026-11-10 22:00:02 [1;34m[INFO][0m Particionamento: yes (tabela gpt, início 1MiB)
 
 [1m==[ PLANO DE EXECUÇÃO ]==[0m
   Host/Nó    : ip-10-20-1-25 (ip-10-20-1-25) | SO=Linux | modo=EXECUTE
@@ -62,36 +74,47 @@
   Esta operação vai alterar o storage e o diskgroup DATA em ip-10-20-1-25.
 [1;33m  Digite o nome do diskgroup (DATA): [0mDATA
 [1;33m  Digite a quantidade de discos (1): [0m1
-2026-11-10 22:00:02 [1;34m[INFO][0m Snapshot (antes): /var/log/dbabrabo/asm_add_disk_brabo_DATA_20261110_220000_snap_antes.txt
+2026-11-10 22:00:03 [1;34m[INFO][0m Snapshot (antes): /var/log/dbabrabo/asm_add_disk_brabo_DATA_20261110_220001_snap_antes.txt
 
 [1m==[ Provisionando 1/1: /dev/disk/by-id/nvme-Amazon_Elastic_Block_Store_vol0abc123 -> DATA05 ]==[0m
-2026-11-10 22:00:02 [1;34m[INFO][0m EXEC: parted -s -a optimal /dev/nvme5n1 mklabel gpt mkpart primary 1MiB 100% 
-2026-11-10 22:00:02 [1;34m[INFO][0m EXEC: partprobe /dev/nvme5n1 
-2026-11-10 22:00:02 [1;34m[INFO][0m EXEC: udevadm settle 
-2026-11-10 22:00:02 [1;32m[ OK ][0m Partição criada: /dev/nvme5n1p1
-2026-11-10 22:00:02 [1;34m[INFO][0m EXEC: /usr/sbin/oracleasm createdisk DATA05 /dev/nvme5n1p1 
+2026-11-10 22:00:03 [1;34m[INFO][0m EXEC: parted -s -a optimal /dev/nvme5n1 mklabel gpt mkpart primary 1MiB 100% 
+2026-11-10 22:00:03 [1;34m[INFO][0m EXEC: partprobe /dev/nvme5n1 
+2026-11-10 22:00:03 [1;34m[INFO][0m EXEC: udevadm settle 
+2026-11-10 22:00:03 [1;32m[ OK ][0m Partição criada: /dev/nvme5n1p1 (PTUUID 1669c876-b8b6-4b8b-9586-134e26f3f6e0)
+2026-11-10 22:00:03 [1;34m[INFO][0m EXEC: /usr/sbin/oracleasm createdisk DATA05 /dev/nvme5n1p1 
 Writing disk header: done
 Instantiating disk: done
 Disk "DATA05" is a valid ASM disk
 /dev/nvme5n1p1: LABEL="DATA05" TYPE="oracleasm"
-2026-11-10 22:00:02 [1;34m[INFO][0m EXEC: /usr/sbin/oracleasm scandisks 
+2026-11-10 22:00:03 [1;34m[INFO][0m EXEC: /usr/sbin/oracleasm scandisks 
 Reloading disk partitions: done
 Cleaning any stale ASM disks...
 Scanning system for ASM disks...
+2026-11-10 22:00:03 [1;34m[INFO][0m EXEC: sh -c true 
 
 [1m==[ Descoberta pelo ASM em TODAS as instâncias ]==[0m
-2026-11-10 22:00:02 [1;32m[ OK ][0m Todos os discos descobertos em 1 instância(s).
+2026-11-10 22:00:03 [1;32m[ OK ][0m Todos os discos descobertos em 1 instância(s).
 
 [1m==[ ALTER DISKGROUP DATA ]==[0m
     ALTER DISKGROUP DATA ADD
       DISK
         'ORCL:DATA05' NAME DATA05
       REBALANCE POWER 4 NOWAIT;
-2026-11-10 22:00:02 [1;32m[ OK ][0m ALTER DISKGROUP DATA ADD executado.
+2026-11-10 22:00:03 [1;32m[ OK ][0m ALTER DISKGROUP DATA ADD executado.
 
 [1m==[ Verificação pós-ADD ]==[0m
-2026-11-10 22:00:02 [1;32m[ OK ][0m DATA05 ORCL:DATA05 MEMBER/ONLINE/NORMAL fg=DATA05 1048574MB
-2026-11-10 22:00:03 [1;34m[INFO][0m Snapshot (depois): /var/log/dbabrabo/asm_add_disk_brabo_DATA_20261110_220000_snap_depois.txt
+2026-11-10 22:00:03 [1;32m[ OK ][0m DATA05 ORCL:DATA05 MEMBER/ONLINE/NORMAL fg=DATA05 1048574MB
+2026-11-10 22:00:04 [1;34m[INFO][0m Snapshot (depois): /var/log/dbabrabo/asm_add_disk_brabo_DATA_20261110_220001_snap_depois.txt
+
+[1m==[ Clusterware depois da mudança (comparação com a foto de antes) ]==[0m
+2026-11-10 22:00:04 [1;32m[ OK ][0m Clusterware: nenhum recurso mudou de estado, sumiu ou reiniciou durante a mudança.
+2026-11-10 22:00:04 [1;34m[INFO][0m Foto do Clusterware (depois): /var/log/dbabrabo/asm_add_disk_brabo_DATA_20261110_220001_crs_depois.txt
+
+[1m==[ Espaço do DATA depois (estilo asmdu) ]==[0m
+  DiskGroup  Redund.    Total G    Livre G  Reserva G   Utiliz. G  %Livre  uso (espelhado)        Disc. Rebal Voting
+  -----------------------------------------------------------------------------------------------------------------
+  DATA       EXTERN      5120.0     1629.9        0.0 [1;32m     1629.9     31%[0m  [##############......]     5   SIM      N
+2026-11-10 22:00:04 [1;34m[INFO][0m O rebalance ainda pode estar rodando: o utilizável final aparece depois dele (--monitor / --asmdu -g DATA).
 
 [1m==[ CONCLUÍDO ]==[0m
   Discos adicionados ao DATA: DATA05
@@ -100,6 +123,6 @@ Scanning system for ASM disks...
   Power      : ./asm_add_disk_brabo.sh -g DATA --set-power <N> --execute
   Reverter   : ALTER DISKGROUP DATA DROP DISK DATA05 REBALANCE POWER <N>;  (só depois de avaliar espaço!)
 
-  Log completo: /var/log/dbabrabo/asm_add_disk_brabo_DATA_add_20261110_220000.log
+  Log completo: /var/log/dbabrabo/asm_add_disk_brabo_DATA_add_20261110_220001.log
 
 

@@ -26,6 +26,9 @@ nº|cenário|respostas|título|comando
 25|exadata-novacell|RECO 12|Exadata: criar os griddisks RECO (mesmo tamanho do DG) e adicionar|./asm_add_disk_brabo.sh -g RECO --exa-cell exa01celadm04 --exa-create-griddisk -p 4 --execute
 26|exadata-novacell|DATA 12 DATA 12|Exadata: criar os griddisks hoje e adicionar na janela|./asm_add_disk_brabo.sh -g DATA --exa-cell exa01celadm04 --exa-create-griddisk --provision-only --execute;;./asm_add_disk_brabo.sh -g DATA --exa-cell exa01celadm04 -p 8 --execute
 27|exadata-c1||Exadata: cells como celladmin, prefixo explícito|./asm_add_disk_brabo.sh -g DATAC1 --exa-cell exa01celadm04 --exa-prefix DATAC1 --exa-user celladmin
+28|vbox-asmlib3|DATA 1 OK|VirtualBox/KVM (disco sem by-id) + ASMLib v3, RAC sem ssh root|./asm_add_disk_brabo.sh -g DATA -d /dev/sdp -p 4 --remote manual;;./asm_add_disk_brabo.sh -g DATA -d /dev/sdp -p 4 --remote manual --wait --execute
+RS|vbox-asmlib3||Recursos do Clusterware por nó (--rac-status)|./asm_add_disk_brabo.sh --rac-status
+DU|vbox-asmlib3||Espaço com o espelho descontado (--asmdu)|./asm_add_disk_brabo.sh --asmdu;;./asm_add_disk_brabo.sh --asmdu -g DATA
 T1|rac-asmlib||Trava: disco com lixo no início (não zerado)|./asm_add_disk_brabo.sh -g DATA -d /dev/sdv
 T2|rac-asmlib||Trava: disco com header ASM antigo|./asm_add_disk_brabo.sh -g DATA -d /dev/sdx
 T3|rac-asmlib||Trava: tamanho diferente dos discos do DG|./asm_add_disk_brabo.sh -g DATA -d /dev/sdw
@@ -35,3 +38,4 @@ T6|normal-fg||Trava: DG NORMAL com failgroups nomeados exige --failgroup|./asm_a
 T7|exacs||Trava: Exadata Cloud (ExaCS/ExaCC) é recusado|./asm_add_disk_brabo.sh -g DATA --exa-cell exa01celadm04
 T8|rac-asmlib|SEM_TTY|Trava: --execute sem terminal e sem --yes|./asm_add_disk_brabo.sh -g DATA -d /dev/sdt --execute < /dev/null
 T9|rac-asmlib-nossh||Trava: --remote ssh exigido e um nó sem ssh|./asm_add_disk_brabo.sh -g DATA -d /dev/sdt --remote ssh
+T10|vbox-asmlib3-acfs||Trava: recurso de ASM fora do estado no Clusterware|./asm_add_disk_brabo.sh -g DATA -d /dev/sdp --remote manual

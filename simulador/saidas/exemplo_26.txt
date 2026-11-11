@@ -5,11 +5,11 @@
   | | | |  _ \ / _ \   |  _ \| |_) |  / _ \ |  _ \| | | |
   | |_| | |_) / ___ \  | |_) |  _ <  / ___ \| |_) | |_| |
   |____/|____/_/   \_\ |____/|_| \_\/_/   \_\____/ \___/
-  [1mASM ADD DISK BRABO[0m v1.1.0 (2026-11-10) — adição segura de discos no Oracle ASM
+  [1mASM ADD DISK BRABO[0m v1.3.1 (2026-11-11) — adição segura de discos no Oracle ASM
   by • DBA BRABO — dbabrabo.com.br
 
-2026-11-10 22:00:00 [1;34m[INFO][0m Ação=provision-only | modo=EXECUTE | host=exa01dbadm01 | usuário=root | SO=Linux
-2026-11-10 22:00:00 [1;34m[INFO][0m Linha de comando: ./asm_add_disk_brabo.sh -g DATA --exa-cell exa01celadm04 --exa-create-griddisk --provision-only --execute
+2026-11-10 22:00:01 [1;34m[INFO][0m Ação=provision-only | modo=EXECUTE | host=exa01dbadm01 | usuário=root | SO=Linux
+2026-11-10 22:00:01 [1;34m[INFO][0m Linha de comando: ./asm_add_disk_brabo.sh -g DATA --exa-cell exa01celadm04 --exa-create-griddisk --provision-only --execute
 
 [1m==[ Ambiente Grid / ASM ]==[0m
 2026-11-10 22:00:01 [1;32m[ OK ][0m ASM: SID=+ASM1 versão=19.0.0.0.0 instâncias=2
@@ -19,7 +19,7 @@
 
 [1m==[ Diskgroup DATA ]==[0m
 2026-11-10 22:00:01 [1;32m[ OK ][0m DG=DATA tipo=HIGH estado=MOUNTED discos=36 total=205037568MB livre=93600000MB usable=8418048MB
-2026-11-10 22:00:01 [1;34m[INFO][0m AU=4MB setor=512 compatible.asm=19.0.0.0.0 | tamanho de referência dos discos: 5695488MB
+2026-11-10 22:00:01 [1;34m[INFO][0m AU=4MB setor=512 compatible.asm=19.0.0.0.0 | discos: mais comum 5695488MB, faixa 5695488-5695488MB
 2026-11-10 22:00:01 [1;34m[INFO][0m cellip.ora: 4 cell(s) configurada(s)
 
 [1m==[ Referência Exadata do DATA ]==[0m
@@ -64,13 +64,13 @@
      caminho ASM: o/*/DATA_CD_11_exa01celadm04
 
   Capacidade : total 205037568MB -> ~273383424MB (+68345856MB brutos) | livre 93600000MB -> ~161945856MB
-               (HIGH: espaço utilizável ganho ~ 22781952MB)
+               usable_file_mb: 8418048MB -> ~31200000MB (estimativa; o valor real sai no v$asm_diskgroup após o rebalance)
 
 [1m==[ CONFIRMAÇÃO ]==[0m
   Esta operação vai alterar as cells exa01celadm04 e/ou o diskgroup DATA (Exadata).
 [1;33m  Digite o nome do diskgroup (DATA): [0mDATA
 [1;33m  Digite a quantidade de griddisks (12): [0m12
-2026-11-10 22:00:02 [1;34m[INFO][0m Snapshot (antes): /var/log/dbabrabo/asm_add_disk_brabo_DATA_20261110_220000_snap_antes.txt
+2026-11-10 22:00:02 [1;34m[INFO][0m Snapshot (antes): /var/log/dbabrabo/asm_add_disk_brabo_DATA_20261110_220001_snap_antes.txt
 
 [1m==[ Criando griddisks DATA_* na cell exa01celadm04 ]==[0m
 2026-11-10 22:00:02 [1;34m[INFO][0m EXEC [cell exa01celadm04]: cellcli -e "create griddisk all harddisk prefix=DATA, size=5695488M"
@@ -89,13 +89,13 @@ GridDisk DATA_CD_11_exa01celadm04 successfully created
 2026-11-10 22:00:02 [1;32m[ OK ][0m Griddisks criados na cell exa01celadm04.
 
 [1m==[ Descoberta pelo ASM ]==[0m
-2026-11-10 22:00:09 [1;32m[ OK ][0m Todos os 12 griddisks descobertos como CANDIDATE em 2 instância(s) ASM.
-2026-11-10 22:00:09 [1;34m[INFO][0m Snapshot (depois): /var/log/dbabrabo/asm_add_disk_brabo_DATA_20261110_220000_snap_depois.txt
+2026-11-10 22:00:10 [1;32m[ OK ][0m Todos os 12 griddisks descobertos como CANDIDATE em 2 instância(s) ASM.
+2026-11-10 22:00:10 [1;34m[INFO][0m Snapshot (depois): /var/log/dbabrabo/asm_add_disk_brabo_DATA_20261110_220001_snap_depois.txt
 
 [1m==[ GRIDDISKS CRIADOS ]==[0m
   Para adicionar: ./asm_add_disk_brabo.sh -g DATA --exa-cell exa01celadm04 -p <N> --execute
 
-  Log completo: /var/log/dbabrabo/asm_add_disk_brabo_DATA_provision-only_20261110_220000.log
+  Log completo: /var/log/dbabrabo/asm_add_disk_brabo_DATA_provision-only_20261110_220001.log
 
 
 [root@exa01dbadm01 dbabrabo]# ./asm_add_disk_brabo.sh -g DATA --exa-cell exa01celadm04 -p 8 --execute
@@ -105,33 +105,33 @@ GridDisk DATA_CD_11_exa01celadm04 successfully created
   | | | |  _ \ / _ \   |  _ \| |_) |  / _ \ |  _ \| | | |
   | |_| | |_) / ___ \  | |_) |  _ <  / ___ \| |_) | |_| |
   |____/|____/_/   \_\ |____/|_| \_\/_/   \_\____/ \___/
-  [1mASM ADD DISK BRABO[0m v1.1.0 (2026-11-10) — adição segura de discos no Oracle ASM
+  [1mASM ADD DISK BRABO[0m v1.3.1 (2026-11-11) — adição segura de discos no Oracle ASM
   by • DBA BRABO — dbabrabo.com.br
 
-2026-11-10 22:00:09 [1;34m[INFO][0m Ação=add | modo=EXECUTE | host=exa01dbadm01 | usuário=root | SO=Linux
-2026-11-10 22:00:09 [1;34m[INFO][0m Linha de comando: ./asm_add_disk_brabo.sh -g DATA --exa-cell exa01celadm04 -p 8 --execute
+2026-11-10 22:00:10 [1;34m[INFO][0m Ação=add | modo=EXECUTE | host=exa01dbadm01 | usuário=root | SO=Linux
+2026-11-10 22:00:10 [1;34m[INFO][0m Linha de comando: ./asm_add_disk_brabo.sh -g DATA --exa-cell exa01celadm04 -p 8 --execute
 
 [1m==[ Ambiente Grid / ASM ]==[0m
-2026-11-10 22:00:09 [1;32m[ OK ][0m ASM: SID=+ASM1 versão=19.0.0.0.0 instâncias=2
-2026-11-10 22:00:09 [1;34m[INFO][0m Grid: user=grid home=/u01/app/19.0.0/grid base=/u01/app/grid
-2026-11-10 22:00:09 [1;34m[INFO][0m asm_power_limit=4 | asm_diskstring=o/*/*
-2026-11-10 22:00:09 [1;32m[ OK ][0m Cluster: RAC com 2 nós (exa01dbadm01 exa01dbadm02) | local=exa01dbadm01
+2026-11-10 22:00:10 [1;32m[ OK ][0m ASM: SID=+ASM1 versão=19.0.0.0.0 instâncias=2
+2026-11-10 22:00:10 [1;34m[INFO][0m Grid: user=grid home=/u01/app/19.0.0/grid base=/u01/app/grid
+2026-11-10 22:00:10 [1;34m[INFO][0m asm_power_limit=4 | asm_diskstring=o/*/*
+2026-11-10 22:00:10 [1;32m[ OK ][0m Cluster: RAC com 2 nós (exa01dbadm01 exa01dbadm02) | local=exa01dbadm01
 
 [1m==[ Diskgroup DATA ]==[0m
-2026-11-10 22:00:09 [1;32m[ OK ][0m DG=DATA tipo=HIGH estado=MOUNTED discos=36 total=205037568MB livre=93600000MB usable=8418048MB
-2026-11-10 22:00:09 [1;34m[INFO][0m AU=4MB setor=512 compatible.asm=19.0.0.0.0 | tamanho de referência dos discos: 5695488MB
-2026-11-10 22:00:09 [1;34m[INFO][0m cellip.ora: 4 cell(s) configurada(s)
+2026-11-10 22:00:11 [1;32m[ OK ][0m DG=DATA tipo=HIGH estado=MOUNTED discos=36 total=205037568MB livre=93600000MB usable=8418048MB
+2026-11-10 22:00:11 [1;34m[INFO][0m AU=4MB setor=512 compatible.asm=19.0.0.0.0 | discos: mais comum 5695488MB, faixa 5695488-5695488MB
+2026-11-10 22:00:11 [1;34m[INFO][0m cellip.ora: 4 cell(s) configurada(s)
 
 [1m==[ Referência Exadata do DATA ]==[0m
-2026-11-10 22:00:09 [1;32m[ OK ][0m Prefixo=DATA tipo=HardDisk griddisks/failgroup=12 tamanho=5695488MB failgroups(cells): EXA01CELADM01 EXA01CELADM02 EXA01CELADM03 
-2026-11-10 22:00:09 [1;34m[INFO][0m Atributos: appliance.mode=TRUE cell.smart_scan_capable=TRUE compatible.rdbms=19.0.0.0.0 content.type=data 
+2026-11-10 22:00:11 [1;32m[ OK ][0m Prefixo=DATA tipo=HardDisk griddisks/failgroup=12 tamanho=5695488MB failgroups(cells): EXA01CELADM01 EXA01CELADM02 EXA01CELADM03 
+2026-11-10 22:00:11 [1;34m[INFO][0m Atributos: appliance.mode=TRUE cell.smart_scan_capable=TRUE compatible.rdbms=19.0.0.0.0 content.type=data 
 
 [1m==[ Cells Exadata ]==[0m
-2026-11-10 22:00:09 [1;32m[ OK ][0m Cell exa01celadm04 (exa01celadm04): 12 griddisks DATA_* active/UNUSED, 5695488MB cada
+2026-11-10 22:00:11 [1;32m[ OK ][0m Cell exa01celadm04 (exa01celadm04): 12 griddisks DATA_* active/UNUSED, 5695488MB cada
 
 [1m==[ Descoberta pelo ASM ]==[0m
-2026-11-10 22:00:17 [1;32m[ OK ][0m Todos os 12 griddisks descobertos como CANDIDATE em 2 instância(s) ASM.
-2026-11-10 22:00:17 [1;34m[INFO][0m Rebalance: power=8 | acompanhar=não
+2026-11-10 22:00:18 [1;32m[ OK ][0m Todos os 12 griddisks descobertos como CANDIDATE em 2 instância(s) ASM.
+2026-11-10 22:00:18 [1;34m[INFO][0m Rebalance: power=8 | acompanhar=não
 
 [1m==[ PLANO DE EXECUÇÃO ]==[0m
   Host/Nó    : exa01dbadm01 (exa01dbadm01) | SO=Linux | modo=EXECUTE
@@ -167,7 +167,7 @@ GridDisk DATA_CD_11_exa01celadm04 successfully created
      caminho ASM: o/192.168.10.7;192.168.10.8/DATA_CD_11_exa01celadm04
 
   Capacidade : total 205037568MB -> ~273383424MB (+68345856MB brutos) | livre 93600000MB -> ~161945856MB
-               (HIGH: espaço utilizável ganho ~ 22781952MB)
+               usable_file_mb: 8418048MB -> ~31200000MB (estimativa; o valor real sai no v$asm_diskgroup após o rebalance)
 
   Statement que será executado:
     ALTER DISKGROUP DATA ADD
@@ -190,7 +190,7 @@ GridDisk DATA_CD_11_exa01celadm04 successfully created
   Esta operação vai alterar as cells exa01celadm04 e/ou o diskgroup DATA (Exadata).
 [1;33m  Digite o nome do diskgroup (DATA): [0mDATA
 [1;33m  Digite a quantidade de griddisks (12): [0m12
-2026-11-10 22:00:18 [1;34m[INFO][0m Snapshot (antes): /var/log/dbabrabo/asm_add_disk_brabo_DATA_20261110_220009_snap_antes.txt
+2026-11-10 22:00:19 [1;34m[INFO][0m Snapshot (antes): /var/log/dbabrabo/asm_add_disk_brabo_DATA_20261110_220010_snap_antes.txt
 
 [1m==[ ALTER DISKGROUP DATA ]==[0m
     ALTER DISKGROUP DATA ADD
@@ -208,29 +208,27 @@ GridDisk DATA_CD_11_exa01celadm04 successfully created
         'o/192.168.10.7;192.168.10.8/DATA_CD_10_exa01celadm04' NAME DATA_CD_10_EXA01CELADM04,
         'o/192.168.10.7;192.168.10.8/DATA_CD_11_exa01celadm04' NAME DATA_CD_11_EXA01CELADM04
       REBALANCE POWER 8 NOWAIT;
-2026-11-10 22:00:18 [1;32m[ OK ][0m ALTER DISKGROUP DATA ADD executado.
+2026-11-10 22:00:19 [1;32m[ OK ][0m ALTER DISKGROUP DATA ADD executado.
 
 [1m==[ Verificação pós-ADD ]==[0m
-2026-11-10 22:00:18 [1;32m[ OK ][0m DATA_CD_00_EXA01CELADM04 o/192.168.10.7;192.168.10.8/DATA_CD_00_exa01celadm04 MEMBER/ONLINE/NORMAL fg=EXA01CELADM04 5695488MB
-2026-11-10 22:00:18 [1;32m[ OK ][0m DATA_CD_01_EXA01CELADM04 o/192.168.10.7;192.168.10.8/DATA_CD_01_exa01celadm04 MEMBER/ONLINE/NORMAL fg=EXA01CELADM04 5695488MB
-2026-11-10 22:00:18 [1;32m[ OK ][0m DATA_CD_02_EXA01CELADM04 o/192.168.10.7;192.168.10.8/DATA_CD_02_exa01celadm04 MEMBER/ONLINE/NORMAL fg=EXA01CELADM04 5695488MB
-2026-11-10 22:00:18 [1;32m[ OK ][0m DATA_CD_03_EXA01CELADM04 o/192.168.10.7;192.168.10.8/DATA_CD_03_exa01celadm04 MEMBER/ONLINE/NORMAL fg=EXA01CELADM04 5695488MB
-2026-11-10 22:00:18 [1;32m[ OK ][0m DATA_CD_04_EXA01CELADM04 o/192.168.10.7;192.168.10.8/DATA_CD_04_exa01celadm04 MEMBER/ONLINE/NORMAL fg=EXA01CELADM04 5695488MB
-2026-11-10 22:00:18 [1;32m[ OK ][0m DATA_CD_05_EXA01CELADM04 o/192.168.10.7;192.168.10.8/DATA_CD_05_exa01celadm04 MEMBER/ONLINE/NORMAL fg=EXA01CELADM04 5695488MB
+2026-11-10 22:00:19 [1;32m[ OK ][0m DATA_CD_00_EXA01CELADM04 o/192.168.10.7;192.168.10.8/DATA_CD_00_exa01celadm04 MEMBER/ONLINE/NORMAL fg=EXA01CELADM04 5695488MB
+2026-11-10 22:00:19 [1;32m[ OK ][0m DATA_CD_01_EXA01CELADM04 o/192.168.10.7;192.168.10.8/DATA_CD_01_exa01celadm04 MEMBER/ONLINE/NORMAL fg=EXA01CELADM04 5695488MB
+2026-11-10 22:00:19 [1;32m[ OK ][0m DATA_CD_02_EXA01CELADM04 o/192.168.10.7;192.168.10.8/DATA_CD_02_exa01celadm04 MEMBER/ONLINE/NORMAL fg=EXA01CELADM04 5695488MB
+2026-11-10 22:00:19 [1;32m[ OK ][0m DATA_CD_03_EXA01CELADM04 o/192.168.10.7;192.168.10.8/DATA_CD_03_exa01celadm04 MEMBER/ONLINE/NORMAL fg=EXA01CELADM04 5695488MB
+2026-11-10 22:00:19 [1;32m[ OK ][0m DATA_CD_04_EXA01CELADM04 o/192.168.10.7;192.168.10.8/DATA_CD_04_exa01celadm04 MEMBER/ONLINE/NORMAL fg=EXA01CELADM04 5695488MB
+2026-11-10 22:00:19 [1;32m[ OK ][0m DATA_CD_05_EXA01CELADM04 o/192.168.10.7;192.168.10.8/DATA_CD_05_exa01celadm04 MEMBER/ONLINE/NORMAL fg=EXA01CELADM04 5695488MB
 2026-11-10 22:00:19 [1;32m[ OK ][0m DATA_CD_06_EXA01CELADM04 o/192.168.10.7;192.168.10.8/DATA_CD_06_exa01celadm04 MEMBER/ONLINE/NORMAL fg=EXA01CELADM04 5695488MB
 2026-11-10 22:00:19 [1;32m[ OK ][0m DATA_CD_07_EXA01CELADM04 o/192.168.10.7;192.168.10.8/DATA_CD_07_exa01celadm04 MEMBER/ONLINE/NORMAL fg=EXA01CELADM04 5695488MB
 2026-11-10 22:00:19 [1;32m[ OK ][0m DATA_CD_08_EXA01CELADM04 o/192.168.10.7;192.168.10.8/DATA_CD_08_exa01celadm04 MEMBER/ONLINE/NORMAL fg=EXA01CELADM04 5695488MB
 2026-11-10 22:00:19 [1;32m[ OK ][0m DATA_CD_09_EXA01CELADM04 o/192.168.10.7;192.168.10.8/DATA_CD_09_exa01celadm04 MEMBER/ONLINE/NORMAL fg=EXA01CELADM04 5695488MB
 2026-11-10 22:00:19 [1;32m[ OK ][0m DATA_CD_10_EXA01CELADM04 o/192.168.10.7;192.168.10.8/DATA_CD_10_exa01celadm04 MEMBER/ONLINE/NORMAL fg=EXA01CELADM04 5695488MB
 2026-11-10 22:00:19 [1;32m[ OK ][0m DATA_CD_11_EXA01CELADM04 o/192.168.10.7;192.168.10.8/DATA_CD_11_exa01celadm04 MEMBER/ONLINE/NORMAL fg=EXA01CELADM04 5695488MB
-2026-11-10 22:00:19 [1;34m[INFO][0m Snapshot (depois): /var/log/dbabrabo/asm_add_disk_brabo_DATA_20261110_220009_snap_depois.txt
+2026-11-10 22:00:19 [1;34m[INFO][0m Snapshot (depois): /var/log/dbabrabo/asm_add_disk_brabo_DATA_20261110_220010_snap_depois.txt
 
 [1m==[ CONCLUÍDO ]==[0m
   Cells adicionadas ao DATA: exa01celadm04 (12 griddisks)
   Acompanhar : ./asm_add_disk_brabo.sh -g DATA --monitor
   Status     : ./asm_add_disk_brabo.sh -g DATA --status
   Reverter   : ALTER DISKGROUP DATA DROP DISKS IN FAILGROUP EXA01CELADM04 REBALANCE POWER <N>;  (avalie o espaço antes!)
-
-  Log completo: /var/log/dbabrabo/asm_add_disk_brabo_DATA_add_20261110_220009.log
 
 

@@ -1,0 +1,64 @@
+[root@vbrac1 dbabrabo]# ./asm_add_disk_brabo.sh --asmdu
+
+   ____  ____    _      ____  ____      _    ____   ___
+  |  _ \| __ )  / \    | __ )|  _ \    / \  | __ ) / _ \
+  | | | |  _ \ / _ \   |  _ \| |_) |  / _ \ |  _ \| | | |
+  | |_| | |_) / ___ \  | |_) |  _ <  / ___ \| |_) | |_| |
+  |____/|____/_/   \_\ |____/|_| \_\/_/   \_\____/ \___/
+  [1mASM ADD DISK BRABO[0m v1.3.1 (2026-11-11) — adição segura de discos no Oracle ASM
+  by • DBA BRABO — dbabrabo.com.br
+
+2026-11-10 22:00:01 [1;34m[INFO][0m Ação=asmdu | modo=DRY-RUN | host=vbrac1 | usuário=root | SO=Linux
+2026-11-10 22:00:01 [1;34m[INFO][0m Linha de comando: ./asm_add_disk_brabo.sh --asmdu
+
+[1m==[ Ambiente Grid / ASM ]==[0m
+2026-11-10 22:00:01 [1;32m[ OK ][0m ASM: SID=+ASM1 versão=23.0.0.0.0 instâncias=3
+2026-11-10 22:00:01 [1;34m[INFO][0m Grid: user=grid home=/u01/app/23.0.0/grid base=/u01/app/grid
+2026-11-10 22:00:01 [1;34m[INFO][0m asm_power_limit=1 | asm_diskstring=ORCL:*
+
+[1m==[ Espaço por diskgroup (estilo asmdu) ]==[0m
+  DiskGroup  Redund.    Total G    Livre G  Reserva G   Utiliz. G  %Livre  uso (espelhado)        Disc. Rebal Voting
+  -----------------------------------------------------------------------------------------------------------------
+  DATA       NORMAL        75.0        7.8       12.5 [1;31m       -4.7      0%[0m  [####################]     6     -      N
+2026-11-10 22:00:01 [1;33m[WARN][0m DATA: utilizável NEGATIVO — não há espaço para refazer o espelho se um disco falhar.
+  OCR        NORMAL         7.5        3.5        2.5 [1;33m        1.0     13%[0m  [##################..]     3     -      Y
+  RECO       NORMAL        25.0       15.0       12.5 [1;33m        2.5     10%[0m  [##################..]     2     -      N
+
+  Log completo: /var/log/dbabrabo/asm_add_disk_brabo_NODG_asmdu_20261110_220001.log
+
+
+[root@vbrac1 dbabrabo]# ./asm_add_disk_brabo.sh --asmdu -g DATA
+
+   ____  ____    _      ____  ____      _    ____   ___
+  |  _ \| __ )  / \    | __ )|  _ \    / \  | __ ) / _ \
+  | | | |  _ \ / _ \   |  _ \| |_) |  / _ \ |  _ \| | | |
+  | |_| | |_) / ___ \  | |_) |  _ <  / ___ \| |_) | |_| |
+  |____/|____/_/   \_\ |____/|_| \_\/_/   \_\____/ \___/
+  [1mASM ADD DISK BRABO[0m v1.3.1 (2026-11-11) — adição segura de discos no Oracle ASM
+  by • DBA BRABO — dbabrabo.com.br
+
+2026-11-10 22:00:01 [1;34m[INFO][0m Ação=asmdu | modo=DRY-RUN | host=vbrac1 | usuário=root | SO=Linux
+2026-11-10 22:00:01 [1;34m[INFO][0m Linha de comando: ./asm_add_disk_brabo.sh --asmdu -g DATA
+
+[1m==[ Ambiente Grid / ASM ]==[0m
+2026-11-10 22:00:01 [1;32m[ OK ][0m ASM: SID=+ASM1 versão=23.0.0.0.0 instâncias=3
+2026-11-10 22:00:01 [1;34m[INFO][0m Grid: user=grid home=/u01/app/23.0.0/grid base=/u01/app/grid
+2026-11-10 22:00:01 [1;34m[INFO][0m asm_power_limit=1 | asm_diskstring=ORCL:*
+
+[1m==[ Espaço por diskgroup (estilo asmdu) ]==[0m
+  DiskGroup  Redund.    Total G    Livre G  Reserva G   Utiliz. G  %Livre  uso (espelhado)        Disc. Rebal Voting
+  -----------------------------------------------------------------------------------------------------------------
+  DATA       NORMAL        75.0        7.8       12.5 [1;31m       -4.7      0%[0m  [####################]     6     -      N
+2026-11-10 22:00:01 [1;33m[WARN][0m DATA: utilizável NEGATIVO — não há espaço para refazer o espelho se um disco falhar.
+
+[1m==[ Uso por diretório em +DATA (asmcmd du) ]==[0m
+  Diretório                                    Usado G        Bruto G    % DG
+  -----------------------------------------------------------------------------
+  ORCL                                             61.0          122.1   81.4%
+  DB_UNKNOWN                                        6.0           12.1    8.1%
+  ASM                                               0.1            0.1    0.1%
+2026-11-10 22:00:01 [1;34m[INFO][0m Usado = sem espelho; Bruto = com espelho (×2 no NORMAL); % DG = bruto / total bruto do diskgroup.
+
+  Log completo: /var/log/dbabrabo/asm_add_disk_brabo_DATA_asmdu_20261110_220001.log
+
+

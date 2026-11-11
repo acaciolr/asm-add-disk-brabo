@@ -1,0 +1,9 @@
+#!/bin/bash
+# Simulador ASM ADD DISK BRABO — rpm FALSO só para o oracleasm-support (versão do
+# ASMLib do cenário); o resto vai para o rpm de verdade. by • DBA BRABO
+. /sim/lab/lib.sh
+if [[ " $* " == *" oracleasm-support "* ]]; then
+  if [[ -n ${ASMLIB_V3:-} ]]; then printf '3.1.1'; else printf '2.1.11'; fi
+  exit 0
+fi
+exec /usr/bin/rpm "$@"

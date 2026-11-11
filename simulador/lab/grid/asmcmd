@@ -14,5 +14,18 @@ case ${1:-} in
   afd_label) k=$(kname_de "$3"); echo "$2|$k" >> "$A" ;;
   afd_unlabel) awk -F'|' -v l="$2" '$1!=l' "$A" > "$A.t" && mv "$A.t" "$A" ;;
   afd_scan) : ;;
+  ls|du)
+    p=${2#+}; g=${p%%/*}; sub=${p#"$g"}; sub=${sub#/}
+    grp=$(awk -F'|' -v g="$g" '$2==g{print $1}' "$M/dg.tsv"); [[ -n $grp ]] || { echo "ASMCMD-8002: entry '$2' does not exist in directory '+'"; exit 1; }
+    red=$(awk -F'|' -v g="$g" '$2==g{print ($4=="HIGH"?3:($4=="EXTERNAL"?1:2))}' "$M/dg.tsv")
+    raw=$(awk -F'|' -v g="$grp" '$1==g{s+=$6-$13} END{print s+0}' "$M/asm.tsv")
+    # diretórios: banco 90%, DB_UNKNOWN 9%, ASM (spfile/orapw) o resto
+    if [[ $1 == ls ]]; then
+      [[ -z $sub ]] && printf '%s/\nASM/\nDB_UNKNOWN/\n' "$(tr '[:lower:]' '[:upper:]' <<<"${CRS_DB:-orcl}")"
+    else
+      case $sub in ASM) f=1 ;; DB_UNKNOWN) f=90 ;; *) f=909 ;; esac
+      r=$(( raw * f / 1000 )); [[ $sub == ASM ]] && r=$(( red * 64 ))
+      printf 'Used_MB      Mirror_used_MB\n%7d %19d\n' $(( r / red )) "$r"
+    fi ;;
   *) echo "ASMCMD-8022: unknown command '$1' specified"; exit 1 ;;
 esac

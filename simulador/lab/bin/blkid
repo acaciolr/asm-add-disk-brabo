@@ -1,8 +1,13 @@
 #!/bin/bash
 # Simulador ASM ADD DISK BRABO — comando FALSO (lê/grava /sim/mundo). by • DBA BRABO
 . /sim/lab/lib.sh
-fmt=full; tag=""; dev=""
-while (( $# )); do case $1 in -p) shift ;; -o) fmt=$2; shift 2 ;; -s) tag=$2; shift 2 ;; *) dev=$1; shift ;; esac; done
+fmt=full; tag=""; dev=""; procura=""
+while (( $# )); do case $1 in -p|-l) shift ;; -o) fmt=$2; shift 2 ;; -s) tag=$2; shift 2 ;; -t) procura=$2; shift 2 ;; *) dev=$1; shift ;; esac; done
+if [[ -n $procura ]]; then  # -t LABEL=X: procura o device pela assinatura
+  k=$(awk -F'|' -v t="$procura" '{n=split($9,a,";"); for(i=1;i<=n;i++) if(a[i]==t){print $1; exit}}' "$M/devices.tsv")
+  [[ -n $k ]] || exit 2
+  echo "/dev/$k"; exit 0
+fi
 k=$(kname_de "$dev"); dev_existe "$k" || exit 2
 sig=$(dev_campo "$k" 9); pt=$(dev_campo "$k" 8)
 [[ -n $pt ]] && sig="PTTYPE=$pt${sig:+;$sig}"

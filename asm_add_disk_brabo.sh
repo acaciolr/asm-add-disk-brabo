@@ -9,16 +9,64 @@
 #        ASM ADD DISK BRABO — adição SEGURA de discos no Oracle ASM
 #==============================================================================
 # Script   : asm_add_disk_brabo.sh
-# Versão   : 1.1.0 (2026-11-10) — + modo Exadata (griddisks via cellcli)
+# Versão   : 1.3.1 (2026-11-11)
 # Autor    : Acácio Lima Rocha — DBA BRABO — https://dbabrabo.com.br
+#
+# Histórico:
+#   1.1.0 (2026-11-10) + modo Exadata (griddisks via cellcli)
+#   1.2.0 (2026-11-10) + ASMLib v3 (OL9/UEK7: sem /dev/oracleasm/disks; disco
+#                        resolvido por querydisk -p / by-label) — a trava maj:min
+#                        e a detecção de partição voltam a funcionar
+#                      + discos SEM /dev/disk/by-id (VirtualBox/KVM SCSI sem
+#                        serial): identificação nos outros nós por ID_PATH +
+#                        tamanho exato + PTUUID gravado no nó local
+#                      + modo --remote manual gera comandos que localizam o
+#                        disco sozinhos em cada nó (antes: "<device de X>")
+#                      + tamanho validado contra a FAIXA min-max dos discos do
+#                        DG (antes: só a moda, com desempate arbitrário)
+#                      + usable_file_mb negativo é avisado e o plano projeta o
+#                        usable depois do ADD (NORMAL/HIGH)
+#                      + convenção nome ASM = label pela MAIORIA (exceções
+#                        avisadas), permissão do device ASMLib conferida e
+#                        alinhada nos nós, aviso de oratab sem a linha do ASM
+#                      + -help/help aceitos; mensagem clara para usuário errado
+#   1.2.1 (2026-11-10) validado no lab rac26ai (3 nós, ASMLib v3, VirtualBox):
+#                      + modo manual: UM comando por nó (antes eram vários) que
+#                        termina em ">>> <nó>: OK", gravado também em arquivo
+#                      + confirmação: Enter vazio pergunta de novo (antes abortava)
+#                      + --provision-only: texto da confirmação e dica final não
+#                        sugerem mais adicionar ao DG usado como referência
+#                      + monitor de rebalance sem campos vazios nas outras instâncias
+#                      + scan: tamanho real dos discos em uso e by-id sem duplicar
+#   1.2.2 (2026-11-10) + ADD DISK ... SIZE <TOTAL_MB comum do DG>M automático
+#                        (--asm-size auto|none|MB): no ASM 23ai/26ai um DG de
+#                        discos iguais recusa disco maior com ORA-15410 (achado
+#                        ao adicionar o DATA07 de 30 GB no +DATA de 25 GB)
+#                      + --monitor/--wait compacto: só passagens RUN (com %),
+#                        WAIT/DONE das outras instâncias num resumo de uma linha
+#   1.3.0 (2026-11-10) + --rac-status (tabela de recursos do Clusterware por nó,
+#                        estilo rac-status.sh) e --asmdu (espaço com espelho
+#                        descontado e uso por diretório, estilo asmdu.sh) - ideias
+#                        de Fred Denis (unknowndba.blogspot.com), reimplementadas
+#                      + validações no ADD: foto do Clusterware antes/depois com
+#                        diff (aborta se ASM/diskgroup divergente) e espaço do DG
+#                        antes/depois
+#   1.3.1 (2026-11-11) + quadro de espaço (estilo asmdu) ignora linha inesperada em vez
+#                        de abortar o script (ele roda DEPOIS do ALTER)
+#                      + ajuste de permissão do device ASMLib só no v3 (no v2 o driver cuida
+#                        de /dev/oracleasm/disks e o device cru não é mexido)
+#                      + --asm-size auto só com compatible.asm >= 23 (antes valia em qualquer
+#                        versão e recusava disco até 2% menor no 19c)
+#                      + --rac-status: nomes "ora.X(ora.asmgroup)" (12.2+) não viram "X.dg(ora"
+#                      + listas de divergências/diferenças do Clusterware alinhadas com acento
 #
 # PADRÃO = DRY-RUN. Nada é alterado sem --execute.
 # Documentação completa e exemplos:  ./asm_add_disk_brabo.sh --help
 #
-# Suporta: Linux (ASMLib, ASMFD/AFD, udev; disco SCSI/virtio/xvd/NVMe/
+# Suporta: Linux (ASMLib v2/v3, ASMFD/AFD, udev; disco SCSI/virtio/xvd/NVMe/
 #          multipath/AWS EBS) | AIX (rhdisk raw) | Solaris e outros via
 #          --add-only | Standalone, Oracle Restart, RAC e Flex ASM |
-#          Diskgroups EXTERNAL/NORMAL/HIGH/FLEX/EXTENDED | ASM 11.2 a 23ai |
+#          Diskgroups EXTERNAL/NORMAL/HIGH/FLEX/EXTENDED | ASM 11.2 a 23ai/26ai |
 #          Exadata on-premises (griddisks via cellcli, com criação opcional)
 #==============================================================================
 
@@ -30,8 +78,8 @@ export LC_ALL=C
 PATH="/usr/sbin:/sbin:/usr/bin:/bin:${PATH:-}"; export PATH
 
 readonly SCRIPT_NAME="asm_add_disk_brabo.sh"
-readonly SCRIPT_VERSION="1.1.0"
-readonly SCRIPT_DATE="2026-11-10"
+readonly SCRIPT_VERSION="1.3.1"
+readonly SCRIPT_DATE="2026-11-11"
 RUN_TS=$(date '+%Y%m%d_%H%M%S')
 
 #------------------------------------------------------------------------------
@@ -48,6 +96,8 @@ GRID_USER=""; GRID_HOME=""; ASM_SID=""; ORA_BASE=""; ENV_FILE=""
 OWNER=""; GROUP=""; PERM=""
 NODES_IN=""; REMOTE_MODE="auto"
 SIZE_TOL=2; ALLOW_SIZE_MISMATCH=0; ALLOW_DIRTY=0; ALLOW_RUNNING_OP=0
+ASM_SIZE_IN="auto"   # --asm-size: auto | none | <MB>  (cláusula SIZE do ADD DISK)
+DU_DIR=""            # --asmdu --dir <subdiretório>; a unidade (--unit) fica em DU_UNIT
 ALLOW_UNHEALTHY=0; FIX_AIX_ATTRS=0
 EXECUTE=0; ASSUME_YES=0; NO_COLOR=0
 EXA_CELLS=""; EXA_PREFIX=""; EXA_USER="root"; EXA_CREATE=0; EXA_SIZE=""; EXA_ALLOW_PARTIAL=0
@@ -61,13 +111,14 @@ LOCK_DIR="/var/tmp/asm_add_disk_brabo.lock"
 UNDO=(); MANUAL_Q=(); WARN_COUNT=0; GEN_OUT=()
 ASM_VER=""; INST_COUNT=1; ASM_POWER_LIMIT=""; ASM_DISKSTRING=""
 IS_RAC=0; NODES=(); LOCAL_NODE=""; REMOTE_NODES=()
-DG_NUM=0; DG_STATE=""; DG_TYPE=""; DG_TOTAL=0; DG_FREE=0; DG_USABLE=0
-DG_AU=0; DG_SECTOR=0; DG_COMPAT=""; DG_COMPAT_ASM=""; DG_OSMB_REF=0
+DG_NUM=0; DG_STATE=""; DG_TYPE=""; DG_TOTAL=0; DG_FREE=0; DG_USABLE=0; DG_REQMIR=0
+DG_AU=0; DG_SECTOR=0; DG_COMPAT=""; DG_COMPAT_ASM=""; DG_OSMB_REF=0; DG_OSMB_MIN=0; DG_OSMB_MAX=0
+DG_EQ_MB=0; DG_CAPPED=0; ADD_SIZE_MB=""
 DG_USES_SITE=0; DG_DEFAULT_FG=1; DG_FGS=""
 DG_OWNER=""; DG_GROUP=""; DG_MODE=""
 DG_PART_STYLE=""; DG_PTTYPE=""
 PATH_STYLE=""; UDEV_DIR=""; NAME_EQ_LABEL=0
-ORACLEASM_BIN=""; AFD_MAP=""; AFD_RAW=""; ASM_MM=" "
+ORACLEASM_BIN=""; ASMLIB_REF_PERM=""; ASMLIB_PERM_RAW=0; AFD_MAP=""; AFD_RAW=""; ASM_MM=" "
 PART_EFF="no"; PTTYPE_EFF="gpt"; POWER_EFF=""; POWER_CLAUSE=""
 OWNER_EFF=""; GROUP_EFF=""; PERM_EFF=""
 SITECOL="'-'"; PASSCOL="'-'"; SQL_LIST="''"
@@ -86,6 +137,7 @@ N_IN=(); N_REAL=(); N_KNAME=(); N_TYPE=(); N_USE=(); N_MB=(); N_SS=()
 N_ID=(); N_BYID=(); N_ISPART=(); N_PART=(); N_NEEDPART=(); N_LABEL=()
 N_NAME=(); N_ASMPATH=(); N_FG=(); N_SITE=(); N_RDEV=(); N_AIXFIX=()
 N_RFIX=(); N_WARN=(); N_UDEVPREV=(); N_GD=()
+N_IDPATH=(); N_BYTES=(); N_PTUUID=()
 
 #------------------------------------------------------------------------------
 # Saída / log
@@ -137,6 +189,9 @@ USO
   >>> O PADRÃO É DRY-RUN: sem --execute NADA é alterado. O script roda TODAS as
   >>> validações, calcula labels/nomes e mostra o plano e os comandos exatos.
 
+  Quem roda: root (adicionar/provisionar/scan). --status e --monitor também
+  rodam como o dono do Grid (ex.: grid).
+
 AÇÕES (uma por execução; padrão = adicionar)
   (padrão)              Provisiona no SO (partição + ASMLib/AFD/udev/permissão),
                         faz scan em todos os nós, valida a descoberta em TODAS as
@@ -151,6 +206,16 @@ AÇÕES (uma por execução; padrão = adicionar)
                         todos os nós + --scan. Exige --execute.
   --set-power <N>       ALTER DISKGROUP <DG> REBALANCE POWER N NOWAIT. Exige --execute.
   --monitor             Acompanha o rebalance (gv$asm_operation) até terminar.
+  --rac-status          Recursos do Clusterware por nó (bancos, PDBs, serviços, listeners,
+                        ASM/diskgroups, rede, outros): divergência STATE≠TARGET, desabilitados
+                        e reinícios < 24 h. Estilo rac-status.sh (Fred Denis). Somente leitura.
+  --asmdu               Espaço por diskgroup com o espelho descontado (total, livre, reserva,
+                        utilizável, % livre). Com -g DG lista também o uso por diretório
+                        (asmcmd du); --dir SUB desce num subdiretório; --unit M|G|T (padrão G).
+                        Estilo asmdu.sh (Fred Denis). Somente leitura.
+
+  Toda adição já roda as duas validações: foto do Clusterware antes/depois com diff
+  (para se ASM/diskgroup estiver divergente) e espaço do DG antes/depois.
 
 PARÂMETROS PRINCIPAIS
   -g, --diskgroup <DG>        Diskgroup (ex.: DATA, RECO, REDO, OCR).
@@ -221,12 +286,19 @@ CLUSTER
       --nodes <n1,n2>         Força a lista de nós (padrão: olsnodes).
       --remote <modo>         auto   : ssh root sem senha se houver, senão manual
                               ssh    : exige ssh (BatchMode) como root em todos os nós
-                              manual : mostra os comandos por nó e espera você digitar OK
+                              manual : mostra UM comando por nó (cole como root em cada
+                                       nó; termina em ">>> <nó>: OK") e espera você digitar OK.
+                                       O comando localiza o disco sozinho (by-id ou ID_PATH),
+                                       confere tamanho e PTUUID e para no primeiro ERRO.
                               none   : apenas standalone / Oracle Restart
 
 TRAVAS DE SEGURANÇA (desligue só sabendo exatamente o porquê)
-      --size-tolerance <%>    Diferença de tamanho aceita vs. discos do DG (padrão 2).
-      --allow-size-mismatch   Tamanho diferente vira apenas aviso.
+      --size-tolerance <%>    Tolerância de tamanho em relação à faixa min-max dos
+                              discos do DG (padrão 2).
+      --allow-size-mismatch   Tamanho fora da faixa vira apenas aviso.
+      --asm-size <auto|none|MB>  Cláusula SIZE do ADD DISK. auto (padrão): com compatible.asm >= 23
+                              e todos os discos do DG com o mesmo TOTAL_MB no ASM, o novo entra
+                              com esse tamanho (ASM 23ai/26ai recusa tamanhos diferentes: ORA-15410).
       --allow-dirty           Aceita disco com bytes não-zerados no início/fim
                               (sem assinatura). O script NUNCA apaga nada.
       --allow-running-rebalance  Aceita adicionar com rebalance em curso no DG.
@@ -241,6 +313,7 @@ LOG / SAÍDA
 O QUE É VALIDADO ANTES DE QUALQUER ALTERAÇÃO
   * root, bash >= 4, lock contra execução concorrente, ASM no ar, conexão SYSASM.
   * Diskgroup MOUNTED, sem rebalance em curso, sem disco OFFLINE/DROPPING/HUNG.
+  * usable_file_mb: avisa se já está negativo e projeta o valor depois do ADD.
   * Exadata (o/...): ambiente cloud recusado; cell online; griddisks active/UNUSED,
     sem diskgroup, mesmo diskType e MESMO tamanho dos atuais; quantidade por cell =
     griddisks por failgroup do DG; celldisks normal e com freeSpace (na criação);
@@ -248,10 +321,12 @@ O QUE É VALIDADO ANTES DE QUALQUER ALTERAÇÃO
   * Para cada disco: é disco inteiro (ou mpath); NÃO é caminho de multipath; sem
     partição, sem filhos/holders, não montado, não é swap/LVM/md, não está aberto
     por processo, sem assinatura (blkid/wipefs), sem marca ASMLib, sem header ASM
-    (kfed), início e fim zerados, maj:min NÃO usado por nenhum disco ASM/ASMLib/AFD,
-    tamanho e setor compatíveis com o DG, disco não repetido na linha de comando.
-  * RAC: disco visível e limpo em TODOS os nós (by-id/WWN no Linux, unique_id no AIX),
-    ASMLib/AFD/udev consistentes nos nós.
+    (kfed), início e fim zerados, maj:min NÃO usado por nenhum disco ASM/ASMLib/AFD
+    (ASMLib v3 incluído: device resolvido por querydisk -p / by-label), tamanho e
+    setor compatíveis com o DG, disco não repetido na linha de comando.
+  * RAC: disco visível, do MESMO tamanho e limpo em TODOS os nós (by-id/WWN; sem
+    by-id usa ID_PATH e, depois de particionar, confere o PTUUID em cada nó;
+    unique_id no AIX), ASMLib/AFD/udev consistentes nos nós.
   * O caminho novo casa com asm_diskstring.
   * Antes do ALTER: TODAS as instâncias ASM (gv$asm_disk) enxergam cada disco
     como CANDIDATE/PROVISIONED/FORMER. Se não, para ANTES do ALTER.
@@ -266,11 +341,11 @@ O QUE É VALIDADO ANTES DE QUALQUER ALTERAÇÃO
 
 AMBIENTES SUPORTADOS
   Linux   : OL/RHEL/SLES 6 a 9 | ASMLib (v2/v3) | ASMFD | udev | multipath |
-            VMware/KVM/Hyper-V | AWS EBS (Nitro/NVMe) | OCI | Azure | GCP
+            VMware/KVM/Hyper-V/VirtualBox | AWS EBS (Nitro/NVMe) | OCI | Azure | GCP
   AIX     : rhdisk raw (chown/chmod + reserve_policy) | RAC com mapeamento por unique_id
   Solaris e outros: provisione o slice manualmente e use --add-only
   Grid    : Standalone/Oracle Restart, RAC, Flex ASM | ASM 11.2, 12.1, 12.2, 18c, 19c,
-            21c, 23ai
+            21c, 23ai, 26ai
   DG      : EXTERNAL, NORMAL, HIGH, FLEX, EXTENDED (com SITE)
   Exadata : on-premises X2 a X11M (HC, EF, XT), cells via ssh root/celladmin
 
@@ -363,6 +438,10 @@ EXEMPLOS
   # 27) Exadata: acesso às cells como celladmin, prefixo explícito
   ./asm_add_disk_brabo.sh -g DATAC1 --exa-cell exa01celadm04 --exa-prefix DATAC1 --exa-user celladmin
 
+  # 28) VirtualBox/KVM (disco compartilhado sem by-id) + ASMLib v3, RAC sem ssh root
+  ./asm_add_disk_brabo.sh -g DATA -d /dev/sdp -p 4 --remote manual            (dry-run)
+  ./asm_add_disk_brabo.sh -g DATA -d /dev/sdp -p 4 --remote manual --wait --execute
+
 CÓDIGOS DE SAÍDA
   0 OK | 1 erro de uso ou pré-check (nada alterado) | 2 cancelado pelo usuário
   3 falha durante a execução (veja o roteiro de reversão no log) | 4 lock | 130 sinal
@@ -383,8 +462,8 @@ parse_args() {
   if [[ $# -eq 0 ]]; then usage; exit 1; fi
   while [[ $# -gt 0 ]]; do
     case $1 in
-      -h|--help)                 usage; exit 0 ;;
-      -V|--version)              echo "$SCRIPT_NAME $SCRIPT_VERSION ($SCRIPT_DATE)"; exit 0 ;;
+      -h|--help|-help|help|-\?)  usage; exit 0 ;;
+      -V|--version|-version)     echo "$SCRIPT_NAME $SCRIPT_VERSION ($SCRIPT_DATE)"; exit 0 ;;
       -g|--diskgroup)            need_arg "$@"; DG=$2; shift 2 ;;
       -d|--disk)                 need_arg "$@"; IFS=',' read -r -a t <<<"$2"; DISKS_IN+=(${t[@]+"${t[@]}"}); shift 2 ;;
       -p|--power)                need_arg "$@"; POWER=$2; shift 2 ;;
@@ -419,6 +498,7 @@ parse_args() {
       --remote)                  need_arg "$@"; REMOTE_MODE=$2; shift 2 ;;
       --size-tolerance)          need_arg "$@"; SIZE_TOL=$2; shift 2 ;;
       --allow-size-mismatch)     ALLOW_SIZE_MISMATCH=1; shift ;;
+      --asm-size)                need_arg "$@"; ASM_SIZE_IN=$2; shift 2 ;;
       --allow-dirty)             ALLOW_DIRTY=1; shift ;;
       --allow-running-rebalance) ALLOW_RUNNING_OP=1; shift ;;
       --allow-unhealthy-dg)      ALLOW_UNHEALTHY=1; shift ;;
@@ -429,6 +509,10 @@ parse_args() {
       --rescan)                  set_action "rescan"; shift ;;
       --set-power)               need_arg "$@"; set_action "set-power"; SET_POWER=$2; shift 2 ;;
       --monitor)                 set_action "monitor"; shift ;;
+      --rac-status)              set_action "rac-status"; shift ;;
+      --asmdu)                   set_action "asmdu"; shift ;;
+      --dir)                     need_arg "$@"; DU_DIR=$2; shift 2 ;;
+      --unit)                    need_arg "$@"; DU_UNIT=$(upper "$2"); shift 2 ;;
       --execute)                 EXECUTE=1; shift ;;
       --yes)                     ASSUME_YES=1; shift ;;
       --log-dir)                 need_arg "$@"; LOG_DIR=${2%/}; shift 2 ;;
@@ -439,6 +523,7 @@ parse_args() {
       --exa-size)                need_arg "$@"; EXA_SIZE=$2; shift 2 ;;
       --exa-allow-partial)       EXA_ALLOW_PARTIAL=1; shift ;;
       --no-color)                NO_COLOR=1; shift ;;
+      -[a-zA-Z][a-zA-Z]*)        die "Parâmetro desconhecido: '$1'. Opções longas usam dois traços (ex.: -$1). Veja --help." ;;
       *) die "Parâmetro desconhecido: '$1' (use --help)." ;;
     esac
   done
@@ -464,9 +549,15 @@ validate_args() {
     status|monitor|set-power)
       [[ -n $DG ]] || die "-g/--diskgroup é obrigatório para --$ACTION."
       (( ${#DISKS_IN[@]} == 0 )) || die "--$ACTION não aceita -d." ;;
-    scan|rescan)
+    scan|rescan|rac-status|asmdu)
       (( ${#DISKS_IN[@]} == 0 )) || die "--$ACTION não aceita -d." ;;
   esac
+  [[ $DU_UNIT == M || $DU_UNIT == G || $DU_UNIT == T ]] || die "--unit deve ser M, G ou T."
+  if [[ -n $DU_DIR ]]; then
+    [[ $ACTION == asmdu && -n $DG ]] || die "--dir só vale com --asmdu -g <DG>."
+    [[ $DU_DIR =~ ^[A-Za-z0-9_.$#/-]+$ && $DU_DIR != *..* ]] || die "--dir inválido: $DU_DIR"
+    DU_DIR=${DU_DIR#/}; DU_DIR=${DU_DIR%/}
+  fi
   if [[ -n $DG ]]; then
     DG=$(upper "$DG")
     [[ $DG =~ ^[A-Z][A-Z0-9_]{0,29}$ ]] || die "Nome de diskgroup inválido: '$DG'."
@@ -480,6 +571,8 @@ validate_args() {
   [[ -z $WIDTH ]] || { is_uint "$WIDTH" && (( WIDTH <= 6 )); } || die "--width deve ser inteiro entre 0 e 6."
   [[ -z $START_NUM ]] || is_uint "$START_NUM" || die "--start deve ser inteiro."
   is_uint "$SIZE_TOL" || die "--size-tolerance deve ser inteiro."
+  [[ $ASM_SIZE_IN == auto || $ASM_SIZE_IN == none ]] || { is_uint "$ASM_SIZE_IN" && (( ASM_SIZE_IN > 0 )); } \
+    || die "--asm-size deve ser auto, none ou um número de MB (recebido '$ASM_SIZE_IN')."
   is_uint "$WAIT_TIMEOUT" || die "--wait-timeout deve ser inteiro (minutos)."
   { is_uint "$POLL" && (( POLL >= 5 )); } || die "--poll deve ser inteiro >= 5."
   [[ -z $PERM || $PERM =~ ^[0-7]{3,4}$ ]] || die "--perm inválido: $PERM"
@@ -567,7 +660,10 @@ on_signal() {
   exit 130
 }
 
-require_root() { [[ $CUR_USER == root ]] || die "Esta ação precisa ser executada como root."; }
+require_root() {
+  [[ $CUR_USER == root ]] && return 0
+  die "Esta ação precisa ser executada como root (você é '$CUR_USER'). Use: sudo -i  (ou su -)  e rode de novo. --status e --monitor rodam como o dono do Grid."
+}
 
 #------------------------------------------------------------------------------
 # Execução de comandos (respeita DRY-RUN)
@@ -588,21 +684,37 @@ r_stdin() { local n=$1; shift; "${SSH_BASE[@]}" "root@$n" "$*"; }
 r_mod() {
   local n=$1 c=$2
   if (( ! EXECUTE )); then dry "[$n] $c"; return 0; fi
-  if [[ $REMOTE_MODE == manual ]]; then MANUAL_Q+=("[$n]  $c"); return 0; fi
+  if [[ $REMOTE_MODE == manual ]]; then MANUAL_Q+=("$n|$c"); return 0; fi
   info "EXEC [$n]: $c"
   r_ro "$n" "$c"
 }
+# Modo manual: junta os comandos de cada nó numa ÚNICA linha (( a ) && ( b ) && ...), na ordem em
+# que foram gerados, e grava também um arquivo por nó no diretório de log (registro / cópia).
 flush_manual() {
-  local q a
+  local q a n c line f
   (( ${#MANUAL_Q[@]} > 0 )) || return 0
   section "AÇÃO MANUAL NOS OUTROS NÓS"
-  echo "Execute COMO ROOT, NA ORDEM, cada comando no nó indicado entre colchetes:"
+  echo "Para CADA nó abaixo: entre nele COMO ROOT e cole a linha inteira UMA vez."
+  echo "Ela localiza o disco sozinha, confere tamanho/PTUUID e para no primeiro ERRO."
+  echo "A última linha impressa no nó deve ser:  >>> <nó>: OK"
   echo
-  for q in "${MANUAL_Q[@]}"; do printf '  %s\n' "$q"; done
-  echo
+  for n in ${REMOTE_NODES[@]+"${REMOTE_NODES[@]}"}; do
+    line=""
+    for q in "${MANUAL_Q[@]}"; do
+      [[ ${q%%|*} == "$n" ]] || continue
+      c=${q#*|}
+      [[ $c == \(* ]] || c="( $c )"
+      line+="${line:+ && }$c"
+    done
+    [[ -n $line ]] || continue
+    line+=" && echo '>>> $n: OK'"
+    f="$LOG_DIR/asm_add_disk_brabo_${DG:-NODG}_${RUN_TS}_manual_${n}.sh"
+    printf '#!/bin/bash\n# %s %s - executar como root em %s\n%s\n' "$SCRIPT_NAME" "$RUN_TS" "$n" "$line" > "$f" 2>/dev/null && chmod 600 "$f"
+    printf '  %s=== %s ===%s   (também em %s)\n  %s\n\n' "$C_W" "$n" "$C_0" "$f" "$line"
+  done
   tty_ok || die "Sem terminal para o modo manual." 3
   while :; do
-    printf 'Depois de executar TODOS os comandos acima sem erro, digite OK (ou ABORTAR): '
+    printf 'Quando TODOS os nós mostrarem ">>> <nó>: OK", digite OK (ou ABORTAR): '
     read -r a < /dev/tty || die "Cancelado." 3
     case $a in OK|ok) break ;; ABORTAR|abortar) die "Abortado pelo operador durante a etapa manual." 3 ;; esac
   done
@@ -614,8 +726,14 @@ confirm_typed() {  # $1 = resposta esperada, $2 = pergunta
   local a
   if (( ASSUME_YES )); then warn "Confirmação dispensada por --yes."; return 0; fi
   tty_ok || die "Sem terminal interativo para a confirmação. Use --yes (com MUITO cuidado)." 2
-  printf '%s%s%s' "$C_Y" "$2" "$C_0"
-  read -r a < /dev/tty || die "Cancelado." 2
+  local t
+  for t in 1 2 3; do   # Enter sem nada pergunta de novo; resposta errada aborta na hora
+    printf '%s%s%s' "$C_Y" "$2" "$C_0"
+    read -r a < /dev/tty || die "Cancelado." 2
+    a=$(trim "$a")
+    [[ -n $a ]] && break
+    printf '    (vazio — digite exatamente: %s)\n' "$1"
+  done
   [[ $a == "$1" ]] || die "Confirmação não confere ('$a' ≠ '$1'). Nada foi alterado." 2
 }
 
@@ -690,6 +808,8 @@ detect_grid() {
     else GRID_USER=$(ps -o user= -p "$pid" 2>/dev/null | awk '{print $1}'); fi
   fi
   [[ -n $GRID_USER ]] && id "$GRID_USER" >/dev/null 2>&1 || die "Dono do Grid não identificado. Use --grid-user."
+  [[ $CUR_USER == root || $CUR_USER == "$GRID_USER" ]] \
+    || die "O ASM pertence a '$GRID_USER' e você é '$CUR_USER': rode como root (sudo -i) ou como $GRID_USER (só --status/--monitor)."
   if [[ -z $GRID_HOME ]]; then
     for f in /etc/oracle/olr.loc /var/opt/oracle/olr.loc; do
       [[ -r $f ]] && GRID_HOME=$(awk -F= '$1=="crs_home"{print $2; exit}' "$f")
@@ -708,6 +828,12 @@ detect_grid() {
     f=$(readlink -f "/proc/$pid/exe" 2>/dev/null); [[ -n $f ]] && GRID_HOME=${f%/bin/oracle}
   fi
   [[ -n $GRID_HOME && -x $GRID_HOME/bin/sqlplus ]] || die "Grid Home não identificado ou inválido ('$GRID_HOME'). Use --grid-home."
+  for f in /etc/oratab /var/opt/oracle/oratab; do
+    [[ -r $f ]] || continue
+    grep -qE "^\\${ASM_SID}:" "$f" \
+      || warn "$f não tem a linha do $ASM_SID (o '. oraenv' não acha o Grid Home). Correção (root): echo '$ASM_SID:$GRID_HOME:N' >> $f"
+    break
+  done
   if [[ -z $ORA_BASE && -x $GRID_HOME/bin/orabase ]]; then
     ORA_BASE=$(as_grid "'$GRID_HOME/bin/orabase'" 2>/dev/null | tail -1)
   fi
@@ -783,12 +909,13 @@ setup_remote() {
 load_dg() {
   local row
   row=$(sqlt <<'SQL'
-select group_number||'|'||state||'|'||type||'|'||total_mb||'|'||free_mb||'|'||usable_file_mb||'|'||(allocation_unit_size/1048576)||'|'||sector_size||'|'||compatibility from v$asm_diskgroup where name = '__DG__';
+select group_number||'|'||state||'|'||type||'|'||total_mb||'|'||free_mb||'|'||usable_file_mb||'|'||(allocation_unit_size/1048576)||'|'||sector_size||'|'||compatibility||'|'||required_mirror_free_mb from v$asm_diskgroup where name = '__DG__';
 SQL
 ) || die "Falha consultando v\$asm_diskgroup."
   [[ -n $row ]] || die "Diskgroup '$DG' não existe."
-  IFS='|' read -r DG_NUM DG_STATE DG_TYPE DG_TOTAL DG_FREE DG_USABLE DG_AU DG_SECTOR DG_COMPAT <<<"$(printf '%s\n' "$row" | head -1)"
+  IFS='|' read -r DG_NUM DG_STATE DG_TYPE DG_TOTAL DG_FREE DG_USABLE DG_AU DG_SECTOR DG_COMPAT DG_REQMIR <<<"$(printf '%s\n' "$row" | head -1)"
   [[ $DG_STATE == MOUNTED ]] || die "Diskgroup $DG não está MOUNTED nesta instância (estado: $DG_STATE)."
+  is_uint "$DG_REQMIR" || DG_REQMIR=0
   row=$(sqlt <<'SQL'
 select a.value from v$asm_attribute a where a.group_number = __DGNUM__ and a.name = 'compatible.asm';
 SQL
@@ -798,7 +925,7 @@ SQL
 
 load_ops() {  # imprime operações do DG atual
   sqlt <<'SQL'
-select o.inst_id||'|'||o.operation||'|'||o.state||'|'||o.power||'|'||o.sofar||'|'||o.est_work||'|'||o.est_rate||'|'||o.est_minutes||'|'||nvl(to_char(o.error_code),'-')||'|'||__PASSCOL__ from gv$asm_operation o where o.group_number = __DGNUM__ order by o.inst_id;
+select o.inst_id||'|'||o.operation||'|'||o.state||'|'||o.power||'|'||nvl(to_char(o.sofar),'-')||'|'||nvl(to_char(o.est_work),'-')||'|'||nvl(to_char(o.est_rate),'-')||'|'||nvl(to_char(o.est_minutes),'-')||'|'||nvl(to_char(o.error_code),'-')||'|'||__PASSCOL__ from gv$asm_operation o where o.group_number = __DGNUM__ order by o.inst_id;
 SQL
 }
 
@@ -839,7 +966,10 @@ SQL
   fi
 
   ok "DG=$DG tipo=$DG_TYPE estado=$DG_STATE discos=${#DGD_PATH[@]} total=${DG_TOTAL}MB livre=${DG_FREE}MB usable=${DG_USABLE}MB"
-  info "AU=${DG_AU}MB setor=$DG_SECTOR compatible.asm=$DG_COMPAT_ASM | tamanho de referência dos discos: ${DG_OSMB_REF}MB"
+  info "AU=${DG_AU}MB setor=$DG_SECTOR compatible.asm=$DG_COMPAT_ASM | discos: mais comum ${DG_OSMB_REF}MB, faixa ${DG_OSMB_MIN}-${DG_OSMB_MAX}MB"
+  if [[ $DG_TYPE != EXTERN ]] && [[ $DG_USABLE =~ ^- ]]; then
+    warn "usable_file_mb=${DG_USABLE}MB (NEGATIVO): se um disco do $DG falhar, o ASM NÃO tem espaço para refazer o espelho (required_mirror_free_mb=${DG_REQMIR}MB)."
+  fi
 }
 
 load_dg_disks() {
@@ -857,12 +987,26 @@ SQL
   done <<<"$rows"
   (( ${#DGD_PATH[@]} > 0 )) || die "Nenhum disco encontrado no $DG."
 
-  # tamanho de referência = OS_MB mais frequente entre os discos REGULAR
+  # tamanho de referência = OS_MB mais frequente entre os discos REGULAR; faixa = min..max
   line=$(for ((cnt=0; cnt<${#DGD_OSMB[@]}; cnt++)); do
            [[ ${DGD_FGT[$cnt]} == QUORUM ]] || echo "${DGD_OSMB[$cnt]}"
          done | sort | uniq -c | sort -k1,1nr -k2,2nr | head -1)
   DG_OSMB_REF=$(awk '{print $2}' <<<"$line")
   is_uint "$DG_OSMB_REF" || DG_OSMB_REF=0
+  read -r DG_OSMB_MIN DG_OSMB_MAX <<<"$(for ((cnt=0; cnt<${#DGD_OSMB[@]}; cnt++)); do
+           [[ ${DGD_FGT[$cnt]} == QUORUM ]] || echo "${DGD_OSMB[$cnt]}"
+         done | awk 'NR==1{mn=$1;mx=$1} {if($1<mn)mn=$1; if($1>mx)mx=$1} END{print mn+0, mx+0}')"
+  is_uint "$DG_OSMB_MIN" || DG_OSMB_MIN=$DG_OSMB_REF
+  is_uint "$DG_OSMB_MAX" || DG_OSMB_MAX=$DG_OSMB_REF
+
+  # Tamanho que o ASM USA (TOTAL_MB). Se é igual em todos os discos REGULAR, o DG é de "discos iguais":
+  # no ASM 23ai/26ai (compatible.asm 23) um ADD diferente falha com ORA-15410 -> o ADD leva SIZE <esse valor>M.
+  DG_EQ_MB=0; DG_CAPPED=0
+  line=$(for ((cnt=0; cnt<${#DGD_TOTAL[@]}; cnt++)); do [[ ${DGD_FGT[$cnt]} == QUORUM ]] || echo "${DGD_TOTAL[$cnt]}"; done | sort -u)
+  if [[ $(wc -l <<<"$line") == 1 ]] && is_uint "$line"; then DG_EQ_MB=$line; fi
+  for ((cnt=0; cnt<${#DGD_OSMB[@]}; cnt++)); do
+    (( DG_EQ_MB > 0 && DGD_OSMB[cnt] > DG_EQ_MB + 8 )) && DG_CAPPED=$((DG_CAPPED+1))
+  done
 
   DG_USES_SITE=0; DG_DEFAULT_FG=1; DG_FGS=" "
   for ((cnt=0; cnt<${#DGD_PATH[@]}; cnt++)); do
@@ -917,11 +1061,25 @@ nonzero_bytes() {  # $1=device $2=offset em MB $3=qtde MB
   dd if="$1" bs=1048576 skip="$2" count="$3" 2>/dev/null | tr -d '\000' | wc -c | tr -d ' '
 }
 
+# ASMLib v2 expõe /dev/oracleasm/disks/<LABEL>; o ASMLib v3 (OL8/OL9, UEK7) NÃO cria esse
+# diretório. Ordem: /dev/oracleasm/disks -> oracleasm querydisk -p (autoritativo) -> by-label.
+asmlib_dev_of() {
+  local l=$1 d
+  [[ -e /dev/oracleasm/disks/$l ]] && { echo "/dev/oracleasm/disks/$l"; return 0; }
+  if [[ -n $ORACLEASM_BIN ]]; then
+    d=$("$ORACLEASM_BIN" querydisk -p "$l" 2>/dev/null | awk -F: '/^\/dev\//{print $1; exit}')
+    [[ -n $d && -b $d ]] && { echo "$d"; return 0; }
+  fi
+  [[ -e /dev/disk/by-label/$l ]] && { readlink -f "/dev/disk/by-label/$l"; return 0; }
+  return 1
+}
+
 asm_path_to_os() {
   case $1 in
-    ORCL:*) echo "/dev/oracleasm/disks/${1#ORCL:}" ;;
-    AFD:*)  awk -v l="${1#AFD:}" 'toupper($1)==toupper(l){print $2; exit}' <<<"$AFD_MAP" ;;
-    /*)     echo "$1" ;;
+    ORCL:*)                 asmlib_dev_of "${1#ORCL:}" ;;
+    /dev/oracleasm/disks/*) if [[ -e $1 ]]; then echo "$1"; else asmlib_dev_of "${1##*/}"; fi ;;
+    AFD:*)                  awk -v l="${1#AFD:}" 'toupper($1)==toupper(l){print $2; exit}' <<<"$AFD_MAP" ;;
+    /*)                     echo "$1" ;;
   esac
 }
 
@@ -931,16 +1089,24 @@ load_afd_map() {
 }
 
 collect_asm_majmins() {
-  local i op x l p
+  local i op x l p miss=0
   ASM_MM=" "
   for ((i=0; i<${#ALL_PATH[@]}; i++)); do
     op=$(asm_path_to_os "${ALL_PATH[$i]}")
-    [[ -n $op && -e $op ]] && ASM_MM+="$(majmin "$op") "
+    if [[ -n $op && -e $op ]]; then ASM_MM+="$(majmin "$op") "; else miss=$((miss+1)); fi
   done
   if [[ $OS == Linux ]]; then
     for x in /dev/oracleasm/disks/*; do [[ -b $x ]] && ASM_MM+="$(majmin "$x") "; done
+    if [[ -n $ORACLEASM_BIN ]]; then
+      while read -r l; do
+        [[ -n $l ]] || continue
+        p=$(asmlib_dev_of "$l") && ASM_MM+="$(majmin "$p") "
+      done < <("$ORACLEASM_BIN" listdisks 2>/dev/null)
+    fi
     while read -r l p; do [[ -n $p && -e $p ]] && ASM_MM+="$(majmin "$p") "; done <<<"$AFD_MAP"
   fi
+  (( miss == 0 )) || warn "$miss disco(s) do ASM sem device do SO resolvido: a trava maj:min fica parcial para eles."
+  info "Devices do ASM/ASMLib/AFD protegidos (maj:min): $(wc -w <<<"$ASM_MM" | tr -d ' ')"
 }
 
 lsblk_kname_of_mm() {  # maj:min -> kname
@@ -1011,12 +1177,22 @@ detect_method() {
 }
 
 prepare_method() {
-  local out n p f
+  local out n p f ver
   case $METHOD in
     asmlib)
-      ORACLEASM_BIN=$(command -v oracleasm 2>/dev/null || true)
+      [[ -n $ORACLEASM_BIN ]] || ORACLEASM_BIN=$(command -v oracleasm 2>/dev/null || true)
       [[ -z $ORACLEASM_BIN && -x /usr/sbin/oracleasm ]] && ORACLEASM_BIN=/usr/sbin/oracleasm
       [[ -n $ORACLEASM_BIN ]] || die "Método asmlib, mas o comando oracleasm não foi encontrado."
+      ver=$(rpm -q --qf '%{VERSION}' oracleasm-support 2>/dev/null || true)
+      [[ $ver == 3.* ]] && info "ASMLib v3 (oracleasm-support $ver): discos resolvidos por querydisk -p / by-label (não há /dev/oracleasm/disks)."
+      p=$(asm_path_to_os "${DGD_PATH[0]}")
+      if [[ -n $p && -e $p ]]; then
+        ASMLIB_REF_PERM=$(stat -L -c '%U:%G:%a' "$p" 2>/dev/null)
+        # v2: a referência é /dev/oracleasm/disks/X (dono gerido pelo driver) — o device cru não é mexido.
+        # v3: a referência é o próprio device (sem /dev/oracleasm/disks) — esse é alinhado nos discos novos.
+        [[ $p == /dev/oracleasm/disks/* ]] || ASMLIB_PERM_RAW=1
+        info "Permissão de referência dos discos ASMLib: $ASMLIB_REF_PERM (de $p)$( (( ASMLIB_PERM_RAW )) || echo ' — ASMLib v2: o driver cuida da permissão')"
+      fi
       [[ $ACTION == add-only ]] && return 0
       out=$("$ORACLEASM_BIN" status 2>&1) || die "oracleasm status falhou: $out"
       grep -qiE ': no$' <<<"$out" && die "ASMLib não está carregado/montado neste nó: $(tr '\n' ' ' <<<"$out")"
@@ -1077,6 +1253,7 @@ detect_partition_style() {
     fi
   done
   if (( c_part >= c_disk && c_part > 0 )); then DG_PART_STYLE="yes"; elif (( c_disk > 0 )); then DG_PART_STYLE="no"; fi
+  (( c_part + c_disk > 0 )) || warn "Não consegui ler o estilo (partição/disco) dos discos atuais do $DG: usando partição GPT."
   info "Discos atuais: particionados=$c_part inteiros=$c_disk | tabela=${DG_PTTYPE:-?}"
 }
 
@@ -1171,11 +1348,11 @@ udev_build_line() {  # $1=novo valor  $2=novo label
 # Checagem de disco — Linux
 #------------------------------------------------------------------------------
 CK_FAIL=""; CK_WARN=""; CK_REAL=""; CK_KNAME=""; CK_TYPE=""; CK_USE=""; CK_MB=0; CK_SS=0
-CK_ID=""; CK_BYID=""; CK_ISPART=0; CK_PART=""; CK_AIXFIX=0
+CK_ID=""; CK_BYID=""; CK_ISPART=0; CK_PART=""; CK_AIXFIX=0; CK_IDPATH=""; CK_BYTES=0
 
 ck_reset() {
   CK_FAIL=""; CK_WARN=""; CK_REAL=""; CK_KNAME=""; CK_TYPE=""; CK_USE=""; CK_MB=0; CK_SS=0
-  CK_ID=""; CK_BYID=""; CK_ISPART=0; CK_PART=""; CK_AIXFIX=0
+  CK_ID=""; CK_BYID=""; CK_ISPART=0; CK_PART=""; CK_AIXFIX=0; CK_IDPATH=""; CK_BYTES=0
 }
 
 linux_dev_check() {
@@ -1237,6 +1414,7 @@ linux_dev_check() {
   fi
 
   bytes=$(blockdev --getsize64 "$real" 2>/dev/null); is_uint "$bytes" || { CK_FAIL="tamanho ilegível"; return 0; }
+  CK_BYTES=$bytes
   CK_MB=$((bytes/1048576)); (( CK_MB > 2 )) || { CK_FAIL="tamanho ${CK_MB}MB inválido"; return 0; }
   CK_SS=$(blockdev --getss "$real" 2>/dev/null); is_uint "$CK_SS" || CK_SS=0
 
@@ -1248,11 +1426,24 @@ linux_dev_check() {
 
   CK_ID=$(udevadm info --query=property --name="$real" 2>/dev/null \
           | awk -F= '$1=="ID_WWN"||$1=="ID_SERIAL"||$1=="DM_UUID"{printf "%s=%s ", $1, $2}')
+  CK_IDPATH=$(udevadm info --query=property --name="$real" 2>/dev/null | awk -F= '$1=="ID_PATH"{print $2; exit}')
+  [[ $CK_IDPATH =~ ^[A-Za-z0-9:._-]+$ ]] || CK_IDPATH=""
   for x in /dev/disk/by-id/*; do
-    [[ -L $x && $(readlink -f "$x") == "$real" ]] && CK_BYID+="${x##*/} "
+    [[ -L $x && $(readlink -f "$x") == "$real" && ${x##*/} =~ ^[A-Za-z0-9:._@+-]+$ ]] && CK_BYID+="${x##*/} "
   done
-  [[ -n $CK_BYID ]] || CK_WARN+="sem link em /dev/disk/by-id (identificação persistente prejudicada); "
+  if [[ -z $CK_BYID ]]; then
+    if [[ -n $CK_IDPATH ]]; then
+      CK_WARN+="sem /dev/disk/by-id (disco sem serial/WWN, típico de VirtualBox/KVM SCSI): nos outros nós será localizado por ID_PATH=$CK_IDPATH + tamanho exato + PTUUID; "
+    else
+      CK_WARN+="sem /dev/disk/by-id e sem ID_PATH (identificação persistente prejudicada); "
+    fi
+  fi
   return 0
+}
+
+ident_curta() {  # identificação persistente mais útil do último linux_dev_check
+  if [[ -n $CK_BYID ]]; then printf 'by-id: %s' "${CK_BYID%% *}"
+  elif [[ -n $CK_IDPATH ]]; then printf 'ID_PATH: %s' "$CK_IDPATH"; fi
 }
 
 #------------------------------------------------------------------------------
@@ -1308,7 +1499,8 @@ check_new_disks() {
     N_IN+=("$in"); N_REAL+=("$CK_REAL"); N_KNAME+=("$CK_KNAME"); N_TYPE+=("$CK_TYPE"); N_USE+=("$CK_USE")
     N_MB+=("$CK_MB"); N_SS+=("$CK_SS"); N_ID+=("$CK_ID"); N_BYID+=("$CK_BYID"); N_ISPART+=("$CK_ISPART")
     N_PART+=("$CK_PART"); N_AIXFIX+=("$CK_AIXFIX"); N_WARN+=("$CK_WARN"); N_RDEV+=(""); N_RFIX+=(""); N_UDEVPREV+=("")
-    ok "$in -> $CK_REAL ($CK_TYPE, ${CK_MB}MB, setor ${CK_SS:-?}) ${CK_BYID:+by-id: ${CK_BYID%% *}}"
+    N_IDPATH+=("$CK_IDPATH"); N_BYTES+=("$CK_BYTES"); N_PTUUID+=("")
+    ok "$in -> $CK_REAL ($CK_TYPE, ${CK_MB}MB, setor ${CK_SS:-?}) $(ident_curta)"
     [[ -n $CK_WARN ]] && warn "$in: $CK_WARN"
   done
   if (( ${#fails[@]} > 0 )); then
@@ -1324,7 +1516,7 @@ check_new_disks() {
 }
 
 check_sizes() {
-  local i eff diff fail=0
+  local i eff diff fail=0 lo hi
   for ((i=0; i<${#N_IN[@]}; i++)); do
     if (( N_SS[i] > 0 && DG_SECTOR > 0 && N_SS[i] > DG_SECTOR )); then
       err "${N_IN[$i]}: setor lógico ${N_SS[$i]} > setor do DG ($DG_SECTOR). O ASM vai recusar."; fail=1
@@ -1333,13 +1525,16 @@ check_sizes() {
     fi
     (( DG_OSMB_REF > 0 )) || continue
     eff=${N_MB[$i]}
+    lo=$(( DG_OSMB_MIN * (100 - SIZE_TOL) / 100 )); hi=$(( DG_OSMB_MAX * (100 + SIZE_TOL) / 100 ))
     diff=$(( (eff > DG_OSMB_REF ? eff - DG_OSMB_REF : DG_OSMB_REF - eff) * 100 / DG_OSMB_REF ))
-    if (( diff > SIZE_TOL )); then
+    if (( eff < lo || eff > hi )); then
       if (( ALLOW_SIZE_MISMATCH )); then
-        warn "${N_IN[$i]}: ${eff}MB vs referência ${DG_OSMB_REF}MB (${diff}%) — aceito por --allow-size-mismatch. Discos de tamanhos diferentes desbalanceiam o I/O."
+        warn "${N_IN[$i]}: ${eff}MB fora da faixa dos discos do DG (${DG_OSMB_MIN}-${DG_OSMB_MAX}MB ±${SIZE_TOL}%) — aceito por --allow-size-mismatch. Discos de tamanhos diferentes desbalanceiam o I/O."
       else
-        err "${N_IN[$i]}: ${eff}MB vs referência do DG ${DG_OSMB_REF}MB (diferença ${diff}% > ${SIZE_TOL}%)."; fail=1
+        err "${N_IN[$i]}: ${eff}MB fora da faixa dos discos do DG (${DG_OSMB_MIN}-${DG_OSMB_MAX}MB ±${SIZE_TOL}%)."; fail=1
       fi
+    elif (( diff > SIZE_TOL )); then
+      info "${N_IN[$i]}: ${eff}MB difere do tamanho mais comum (${DG_OSMB_REF}MB), mas está dentro da faixa já usada no DG (${DG_OSMB_MIN}-${DG_OSMB_MAX}MB)."
     fi
   done
   (( fail == 0 )) || die "Validação de tamanho/setor falhou (use --allow-size-mismatch se for intencional)."
@@ -1355,24 +1550,58 @@ check_asmlib_scanorder() {
   fi
 }
 
+# Trecho de shell (para rodar no nó remoto) que coloca em $D o device do disco i:
+# 1) /dev/disk/by-id (WWN/serial; preferidos primeiro)  2) ID_PATH (mesmo slot no storage).
+remote_find_snippet() {
+  local i=$1 id sorted=""
+  for id in ${N_BYID[$i]:-}; do
+    case $id in wwn-*|dm-uuid-mpath-*|scsi-3*|nvme-eui.*) sorted="$id $sorted" ;; *-part[0-9]*) ;; *) sorted+="$id " ;; esac
+  done
+  printf "D=''; for i in %s; do [ -e /dev/disk/by-id/\$i ] && { D=\$(readlink -f /dev/disk/by-id/\$i); break; }; done; " "${sorted:-_sem_by_id_}"
+  if [[ -n ${N_IDPATH[$i]:-} ]]; then
+    printf "[ -n \"\$D\" ] || for d in \$(lsblk -dnpo NAME,TYPE | awk '\$2==\"disk\"{print \$1}'); do [ \"\$(udevadm info -q property -n \$d | sed -n 's/^ID_PATH=//p')\" = '%s' ] && { D=\$d; break; }; done; " "${N_IDPATH[$i]}"
+  fi
+  printf "case \$D in /dev/dm-*) m=\$(cat /sys/class/block/\${D##*/}/dm/name 2>/dev/null); [ -n \"\$m\" ] && D=/dev/mapper/\$m;; esac; "
+}
+
+# Comando completo (subshell) para o nó remoto: localiza o disco, confere tamanho e
+# (se já gravado) o PTUUID, e roda $3 sobre ele.
+remote_disk_cmd() {  # $1=índice $2=nó $3=ação (usa $D)
+  local i=$1 n=$2 act=$3 rdev s
+  if rdev=$(rdev_of "$i" "$n"); then s="D='$rdev'; "; else s=$(remote_find_snippet "$i"); fi
+  s+="[ -b \"\$D\" ] || { echo 'ERRO: disco ${N_IN[$i]} não localizado neste nó'; exit 1; }; "
+  s+="[ \"\$(blockdev --getsize64 \$D)\" = '${N_BYTES[$i]}' ] || { echo \"ERRO: \$D tem tamanho diferente de ${N_IN[$i]}\"; exit 1; }; "
+  if [[ -n ${N_PTUUID[$i]:-} ]]; then
+    s+="[ \"\$(blkid -p -o value -s PTUUID \$D)\" = '${N_PTUUID[$i]}' ] || { echo \"ERRO: PTUUID de \$D difere — NÃO é o disco particionado no $LOCAL_NODE\"; exit 1; }; "
+  elif (( ! EXECUTE )); then
+    s+="<confere o PTUUID gravado no $LOCAL_NODE>; "
+  fi
+  s+="$act"
+  printf '( %s )' "$s"
+}
+
 remote_visibility_linux() {
-  local i n ids id script r chk sorted
+  local i n r chk rb
+  for ((i=0; i<${#N_IN[@]}; i++)); do
+    if [[ -z ${N_BYID[$i]} && -z ${N_IDPATH[$i]} ]]; then
+      die "${N_IN[$i]} não tem /dev/disk/by-id nem ID_PATH: impossível localizá-lo com segurança nos outros nós."
+    fi
+  done
   if [[ $REMOTE_MODE != ssh ]]; then
-    warn "Modo remoto '$REMOTE_MODE': a visibilidade nos outros nós será validada pelo ASM (gv\$asm_disk) ANTES do ALTER."
+    warn "Modo remoto '$REMOTE_MODE': os comandos de cada nó localizam o disco sozinhos (by-id/ID_PATH) e conferem tamanho e PTUUID; o ASM (gv\$asm_disk) valida a visibilidade ANTES do ALTER."
     return 0
   fi
   for ((i=0; i<${#N_IN[@]}; i++)); do
-    ids=${N_BYID[$i]}
-    [[ -n $ids ]] || die "${N_IN[$i]} não tem /dev/disk/by-id: impossível localizá-lo com segurança nos outros nós."
-    sorted=""
-    for id in $ids; do case $id in wwn-*|dm-uuid-mpath-*|scsi-3*|nvme-eui.*) sorted="$id $sorted" ;; *-part[0-9]*) ;; *) sorted+="$id " ;; esac; done
-    script="for i in $sorted; do if [ -e /dev/disk/by-id/\$i ]; then p=\$(readlink -f /dev/disk/by-id/\$i); case \$p in /dev/dm-*) n=\$(cat /sys/class/block/\${p##*/}/dm/name 2>/dev/null); [ -n \"\$n\" ] && p=/dev/mapper/\$n;; esac; echo \$p; exit 0; fi; done; exit 1"
     for n in "${REMOTE_NODES[@]}"; do
-      r=$(r_ro "$n" "$script") || die "${N_IN[$i]} NÃO está visível no nó $n (by-id: $sorted). Verifique zoning/attach/multi-attach."
+      r=$(r_ro "$n" "$(remote_find_snippet "$i") [ -b \"\$D\" ] || exit 1; echo \$D") \
+        || die "${N_IN[$i]} NÃO está visível no nó $n (by-id: ${N_BYID[$i]:--} ID_PATH: ${N_IDPATH[$i]:--}). Verifique zoning/attach/multi-attach."
+      [[ $r =~ ^/dev/[A-Za-z0-9/_.-]+$ ]] || die "[$n] retorno inesperado ao localizar ${N_IN[$i]}: $r"
+      rb=$(r_ro "$n" "blockdev --getsize64 $r")
+      [[ $rb == "${N_BYTES[$i]}" ]] || die "[$n] $r tem ${rb:-?} bytes, mas ${N_IN[$i]} tem ${N_BYTES[$i]}: NÃO é o mesmo disco."
       chk=$(r_ro "$n" "lsblk -nlo KNAME,TYPE,MOUNTPOINT $r 2>/dev/null | awk 'NR>1 || \$3!=\"\"'; blkid -p -o export $r 2>/dev/null | grep -E '^(TYPE|PTTYPE)='")
-      [[ -z $chk ]] && [[ $r =~ ^/dev/[A-Za-z0-9/_.-]+$ ]] || die "No nó $n o device $r (= ${N_IN[$i]}) NÃO está limpo: $chk"
+      [[ -z $chk ]] || die "No nó $n o device $r (= ${N_IN[$i]}) NÃO está limpo: $chk"
       N_RDEV[$i]+="$n=$r "
-      ok "[$n] ${N_IN[$i]} visível como $r e limpo"
+      ok "[$n] ${N_IN[$i]} visível como $r, mesmo tamanho e limpo"
     done
   done
 }
@@ -1497,7 +1726,7 @@ path_for_label() {
 
 gen_labels_and_names() {
   section "Labels e nomes ASM"
-  local cnt=${#N_IN[@]} i src="" taken="" l arr=() eq=0 namesrc="" nametaken=""
+  local cnt=${#N_IN[@]} i src="" taken="" l arr=() eq=0 namesrc="" nametaken="" exc=""
   if [[ $ACTION != add-only ]]; then N_LABEL=(); fi
   N_NAME=()
 
@@ -1530,12 +1759,16 @@ gen_labels_and_names() {
     esac
   fi
 
-  # convenção NAME == label?
+  # convenção NAME == label? (maioria; exceções são avisadas)
   if [[ $METHOD == asmlib || $METHOD == afd || $METHOD == udev ]]; then
     for ((i=0; i<${#DGD_PATH[@]}; i++)); do
-      [[ $(upper "$(label_of_path "${DGD_PATH[$i]}")") == "$(upper "${DGD_NAME[$i]}")" ]] && eq=$((eq+1))
+      if [[ $(upper "$(label_of_path "${DGD_PATH[$i]}")") == "$(upper "${DGD_NAME[$i]}")" ]]; then eq=$((eq+1))
+      else exc+="${DGD_NAME[$i]}(${DGD_PATH[$i]}) "; fi
     done
-    (( eq == ${#DGD_PATH[@]} )) && NAME_EQ_LABEL=1
+    if (( eq * 2 > ${#DGD_PATH[@]} )); then
+      NAME_EQ_LABEL=1
+      [[ -n $exc ]] && warn "Nome ASM = label em $eq de ${#DGD_PATH[@]} discos; exceções (nome diferente do label): $exc"
+    fi
   fi
   info "Convenção do DG: nome ASM $([[ $NAME_EQ_LABEL == 1 ]] && echo '= label' || echo '≠ label (padrão próprio)')"
 
@@ -1664,6 +1897,35 @@ resolve_power() {
   info "Rebalance: power=$POWER_EFF | acompanhar=$([[ $MON_WAIT == 1 ]] && echo sim || echo não)"
 }
 
+# Cláusula SIZE do ADD DISK. auto: se todos os discos do DG têm o mesmo TOTAL_MB no ASM, o disco novo
+# entra com esse mesmo tamanho (ASM 23ai/26ai: ORA-15410 "Disks in disk group do not have equal size").
+resolve_asm_size() {
+  local i
+  ADD_SIZE_MB=""
+  case $ASM_SIZE_IN in
+    none) info "Cláusula SIZE: desligada (--asm-size none)."; return 0 ;;
+    auto) version_ge "$DG_COMPAT_ASM" "23" || { info "Cláusula SIZE: não usada (compatible.asm $DG_COMPAT_ASM < 23: o ASM aceita discos de tamanhos diferentes)."; return 0; }
+          (( DG_EQ_MB > 0 )) || { info "Cláusula SIZE: não usada (discos do $DG com TOTAL_MB diferentes)."; return 0; }
+          ADD_SIZE_MB=$DG_EQ_MB ;;
+    *)    ADD_SIZE_MB=$ASM_SIZE_IN ;;
+  esac
+  for ((i=0; i<${#N_IN[@]}; i++)); do
+    if (( N_MB[i] > 0 && N_MB[i] < ADD_SIZE_MB )); then
+      die "${N_IN[$i]} tem ${N_MB[$i]}MB, menor que o tamanho usado pelos discos do $DG no ASM (${ADD_SIZE_MB}MB). Use um disco >= ${ADD_SIZE_MB}MB (ou --asm-size <MB> / none, sabendo que o ASM 23+ recusa tamanhos diferentes: ORA-15410)."
+    fi
+  done
+  if [[ $ASM_SIZE_IN == auto ]]; then
+    local cap=""
+    (( DG_CAPPED > 0 )) && cap=" ($DG_CAPPED disco(s) com OS_MB maior já limitados a esse valor)"
+    info "Discos do $DG com o MESMO tamanho no ASM: TOTAL_MB=${DG_EQ_MB}${cap} → ADD com SIZE ${ADD_SIZE_MB}M (evita ORA-15410)."
+  fi
+  for ((i=0; i<${#N_IN[@]}; i++)); do
+    (( N_MB[i] > ADD_SIZE_MB + 8 )) && warn "${N_IN[$i]}: ${N_MB[$i]}MB no SO, ${ADD_SIZE_MB}MB usados pelo ASM — $(( N_MB[i] - ADD_SIZE_MB ))MB ficam sem uso (dá para aproveitar depois com ALTER DISKGROUP $DG RESIZE ALL quando todos os discos forem maiores)."
+  done
+  return 0
+}
+eff_mb() { echo "${ADD_SIZE_MB:-${N_MB[$1]}}"; }
+
 decide_partition() {
   local i
   for ((i=0; i<${#N_IN[@]}; i++)); do N_NEEDPART+=(0); done
@@ -1689,6 +1951,11 @@ decide_partition() {
   [[ $METHOD == udev && $UDEV_PART_RULE == 1 && $PART_EFF == no ]] && die "O template udev é de PARTIÇÃO, mas foi escolhido disco inteiro. Remova --no-partition."
   [[ $METHOD == udev && $UDEV_PART_RULE == 0 && $PART_EFF == yes ]] && die "O template udev é de DISCO inteiro, mas foi escolhida partição. Use --no-partition."
   info "Particionamento: $PART_EFF (tabela $PTTYPE_EFF, início 1MiB)"
+  if (( IS_RAC )) && [[ $PART_EFF == no ]]; then
+    for ((i=0; i<${#N_IN[@]}; i++)); do
+      [[ -z ${N_BYID[$i]} ]] && warn "${N_IN[$i]}: disco inteiro sem by-id — sem tabela de partição não há PTUUID para conferir o disco nos outros nós (só ID_PATH + tamanho)."
+    done
+  fi
 
   # pré-visualização do identificador udev
   if [[ $METHOD == udev ]]; then
@@ -1764,7 +2031,7 @@ build_alter() {
     for ((j=0; j<${#N_NAME[@]}; j++)); do
       [[ "${N_SITE[$j]:-}|${N_FG[$j]:-}" == "$k" ]] || continue
       (( first )) || lines+=","
-      lines+=$'\n'"    '${N_ASMPATH[$j]}' NAME ${N_NAME[$j]}"
+      lines+=$'\n'"    '${N_ASMPATH[$j]}' NAME ${N_NAME[$j]}${ADD_SIZE_MB:+ SIZE ${ADD_SIZE_MB}M}"
       first=0
     done
     s+=$lines
@@ -1776,9 +2043,17 @@ build_alter() {
 #------------------------------------------------------------------------------
 # Plano
 #------------------------------------------------------------------------------
+usable_after() {  # projeção aproximada do usable_file_mb depois do ADD (default failgroups)
+  local add=$1 maxnew=0 i req red
+  case $DG_TYPE in NORMAL) red=2 ;; HIGH) red=3 ;; *) echo "$((DG_FREE + add))"; return ;; esac
+  for ((i=0; i<${#N_MB[@]}; i++)); do (( $(eff_mb "$i") > maxnew )) && maxnew=$(eff_mb "$i"); done
+  req=$DG_REQMIR; (( DG_DEFAULT_FG && maxnew * (red - 1) > req )) && req=$(( maxnew * (red - 1) ))
+  echo $(( (DG_FREE + add - req) / red ))
+}
+
 print_plan() {
   section "PLANO DE EXECUÇÃO"
-  local i add=0
+  local i add=0 ua
   printf '  Host/Nó    : %s (%s) | SO=%s | modo=%s\n' "$(hostname)" "$LOCAL_NODE" "$OS" "$([[ $EXECUTE == 1 ]] && echo EXECUTE || echo DRY-RUN)"
   printf '  Cluster    : %s | remoto=%s\n' "$([[ $IS_RAC == 1 ]] && echo "RAC (${NODES[*]})" || echo standalone)" "$REMOTE_MODE"
   printf '  Diskgroup  : %s (%s) AU=%sMB setor=%s compatible.asm=%s\n' "$DG" "$DG_TYPE" "$DG_AU" "$DG_SECTOR" "$DG_COMPAT_ASM"
@@ -1799,14 +2074,19 @@ print_plan() {
       "${N_LABEL[$i]}" "${N_NAME[$i]}" "${N_FG[$i]:-$([[ $METHOD == exadata ]] && echo "$(upper "${N_REAL[$i]}") (auto)" || echo '(padrão)')}"
     printf '     caminho ASM: %s\n' "${N_ASMPATH[$i]}"
     [[ -n ${N_BYID[$i]:-} ]] && printf '     by-id      : %s\n' "${N_BYID[$i]%% *}"
+    [[ -z ${N_BYID[$i]:-} && -n ${N_IDPATH[$i]:-} ]] && printf '     ID_PATH    : %s (sem by-id)\n' "${N_IDPATH[$i]}"
     [[ -n ${N_ID[$i]:-} ]] && printf '     id         : %s\n' "${N_ID[$i]}"
     [[ -n ${N_RDEV[$i]:-} ]] && printf '     outros nós : %s\n' "${N_RDEV[$i]}"
-    add=$((add + N_MB[i]))
+    [[ -n $ADD_SIZE_MB && ${N_MB[$i]} != "$ADD_SIZE_MB" ]] && printf '     no ASM     : SIZE %sM (SO tem %sMB)\n' "$ADD_SIZE_MB" "${N_MB[$i]}"
+    add=$((add + $(eff_mb "$i")))
   done
   printf '\n  Capacidade : total %sMB -> ~%sMB (+%sMB brutos) | livre %sMB -> ~%sMB\n' \
     "$DG_TOTAL" "$((DG_TOTAL+add))" "$add" "$DG_FREE" "$((DG_FREE+add))"
-  [[ $DG_TYPE == NORMAL ]] && printf '               (NORMAL: espaço utilizável ganho ~ %sMB)\n' "$((add/2))"
-  [[ $DG_TYPE == HIGH ]]   && printf '               (HIGH: espaço utilizável ganho ~ %sMB)\n' "$((add/3))"
+  if [[ $DG_TYPE == NORMAL || $DG_TYPE == HIGH ]]; then
+    ua=$(usable_after "$add")
+    printf '               usable_file_mb: %sMB -> ~%sMB (estimativa; o valor real sai no v$asm_diskgroup após o rebalance)\n' "$DG_USABLE" "$ua"
+    (( ua < 0 )) && printf '  %sAtenção: mesmo depois do ADD o usable continua NEGATIVO — adicione mais capacidade.%s\n' "$C_Y" "$C_0"
+  fi
   if [[ $ACTION != provision-only ]]; then
     printf '\n  Statement que será executado:\n'
     build_alter | sed 's/^/    /'
@@ -1823,7 +2103,7 @@ snapshot() {
   {
     echo "### $(ts) host=$(hostname) fase=$1 script=$SCRIPT_VERSION"
     case $OS in
-      Linux) lsblk -o NAME,KNAME,TYPE,SIZE,MAJ:MIN,OWNER,GROUP,MODE,MOUNTPOINT 2>/dev/null ;;
+      Linux) lsblk -o NAME,KNAME,TYPE,SIZE,MAJ:MIN,OWNER,GROUP,MODE,MOUNTPOINT,PTUUID 2>/dev/null ;;
       AIX)   lspv 2>/dev/null; lsdev -Cc disk 2>/dev/null ;;
     esac
     [[ $METHOD == asmlib && -n $ORACLEASM_BIN ]] && { echo "### oracleasm listdisks"; "$ORACLEASM_BIN" listdisks 2>&1; }
@@ -1868,6 +2148,17 @@ wait_partition() {
   return 1
 }
 
+# ASMLib: confere/alinha dono:grupo:modo do device rotulado com o dos discos atuais.
+# Só no ASMLib v3 (referência = device cru); quem ajusta é a regra udev do iofilter, aqui só garantimos o estado.
+asmlib_fix_perm_cmd() {  # $1=label -> comando shell (roda em qualquer nó)
+  local l=$1 u g m
+  (( ASMLIB_PERM_RAW )) || { echo "true"; return; }
+  [[ $ASMLIB_REF_PERM =~ ^([A-Za-z0-9_.-]+):([A-Za-z0-9_.-]+):([0-7]{3,4})$ ]] || { echo "true"; return; }
+  u=${BASH_REMATCH[1]}; g=${BASH_REMATCH[2]}; m=${BASH_REMATCH[3]}
+  printf "P=\$(blkid -l -t LABEL=%s -o device); [ -b \"\$P\" ] || P=\$(%s querydisk -p %s | awk -F: '/^\\/dev\\//{print \$1; exit}'); [ -b \"\$P\" ] || { echo 'ERRO: device do label %s não encontrado'; exit 1; }; [ \"\$(stat -L -c %%U:%%G:%%a \$P)\" = '%s' ] || { chown %s:%s \$P && chmod %s \$P; }; ls -lL \$P" \
+    "$l" "$ORACLEASM_BIN" "$l" "$l" "$ASMLIB_REF_PERM" "$u" "$g" "$m"
+}
+
 prov_linux() {
   local i=$1
   local dev=${N_USE[$i]} part n rdev k start tgt
@@ -1887,15 +2178,19 @@ prov_linux() {
       k=$(basename "$(readlink -f "$part")")
       start=$(cat "/sys/class/block/$k/start" 2>/dev/null)
       [[ -z $start || $start == 2048 ]] || warn "$part começa no setor $start (esperado 2048 = 1MiB)."
-      ok "Partição criada: $part"
+      N_PTUUID[$i]=$(blkid -p -o value -s PTUUID "$dev" 2>/dev/null)
+      [[ ${N_PTUUID[$i]} =~ ^[A-Za-z0-9-]+$ ]] || { warn "PTUUID de $dev ilegível: a conferência nos outros nós fica só por by-id/ID_PATH + tamanho."; N_PTUUID[$i]=""; }
+      ok "Partição criada: $part ${N_PTUUID[$i]:+(PTUUID ${N_PTUUID[$i]})}"
     else
       part="$(predict_part "$dev") (previsto)"
     fi
     N_PART[$i]=$part
     for n in ${REMOTE_NODES[@]+"${REMOTE_NODES[@]}"}; do
-      rdev=$(rdev_of "$i" "$n") || rdev="<device de ${N_IN[$i]} em $n>"
-      if [[ ${N_TYPE[$i]} == mpath ]]; then r_mod "$n" "kpartx -a $rdev && udevadm settle" || return 1
-      else r_mod "$n" "partprobe $rdev && udevadm settle" || return 1; fi
+      if [[ ${N_TYPE[$i]} == mpath ]]; then
+        r_mod "$n" "$(remote_disk_cmd "$i" "$n" "kpartx -a \$D && udevadm settle && lsblk \$D")" || return 1
+      else
+        r_mod "$n" "$(remote_disk_cmd "$i" "$n" "partprobe \$D && udevadm settle && lsblk \$D")" || return 1
+      fi
     done
   else
     [[ -n ${N_PART[$i]} ]] || N_PART[$i]=$dev
@@ -1910,8 +2205,9 @@ prov_linux() {
         "$ORACLEASM_BIN" querydisk -p "${N_LABEL[$i]}" || { err "querydisk não confirmou ${N_LABEL[$i]}."; return 1; }
       fi
       run_mod "$ORACLEASM_BIN" scandisks || return 1
+      run_mod sh -c "$(asmlib_fix_perm_cmd "${N_LABEL[$i]}")" || return 1
       for n in ${REMOTE_NODES[@]+"${REMOTE_NODES[@]}"}; do
-        r_mod "$n" "$ORACLEASM_BIN scandisks && $ORACLEASM_BIN querydisk -p ${N_LABEL[$i]}" || return 1
+        r_mod "$n" "( $ORACLEASM_BIN scandisks && $ORACLEASM_BIN querydisk -p ${N_LABEL[$i]} && $(asmlib_fix_perm_cmd "${N_LABEL[$i]}") )" || return 1
       done ;;
     afd)
       run_mod grid_env_root "$GRID_HOME/bin/asmcmd" afd_label "${N_LABEL[$i]}" "$tgt" || return 1
@@ -1965,12 +2261,13 @@ udev_apply() {
     ok "${N_ASMPATH[$i]} -> $tgt ($OWNER_EFF:$GROUP_EFF $PERM_EFF)"
   fi
   for n in ${REMOTE_NODES[@]+"${REMOTE_NODES[@]}"}; do
-    rt=$(rdev_of "$i" "$n") || rt="<device de ${N_IN[$i]} em $n>"
-    if (( UDEV_PART_RULE )); then rt="\$(lsblk -nlpo NAME,TYPE $rt | awk '\$2==\"part\"{print \$1; exit}')"; fi
-    cmd="[ -e '$UDEV_FILE.bak_asmbrabo_$RUN_TS' ] || cp -p '$UDEV_FILE' '$UDEV_FILE.bak_asmbrabo_$RUN_TS'; "
+    if rt=$(rdev_of "$i" "$n"); then cmd="D='$rt'; "; else cmd=$(remote_find_snippet "$i"); fi
+    if (( UDEV_PART_RULE )); then cmd+="D=\$(lsblk -nlpo NAME,TYPE \$D | awk '\$2==\"part\"{print \$1; exit}'); "; fi
+    cmd+="[ -b \"\$D\" ] || { echo 'ERRO: device de ${N_IN[$i]} não localizado'; exit 1; }; "
+    cmd+="[ -e '$UDEV_FILE.bak_asmbrabo_$RUN_TS' ] || cp -p '$UDEV_FILE' '$UDEV_FILE.bak_asmbrabo_$RUN_TS'; "
     cmd+="printf '%s\n' $(printf '%q' "$line") >> '$UDEV_FILE' && udevadm control --reload-rules && "
-    cmd+="udevadm trigger --action=change --sysname-match=\$(basename \$(readlink -f $rt)) && udevadm settle && sleep 2 && ls -lL '${N_ASMPATH[$i]}'"
-    r_mod "$n" "$cmd" || return 1
+    cmd+="udevadm trigger --action=change --sysname-match=\$(basename \$(readlink -f \$D)) && udevadm settle && sleep 2 && ls -lL '${N_ASMPATH[$i]}'"
+    r_mod "$n" "( $cmd )" || return 1
     (( EXECUTE )) && UNDO+=("[$n] cp -p $UDEV_FILE.bak_asmbrabo_$RUN_TS $UDEV_FILE && udevadm control --reload-rules")
   done
   return 0
@@ -2104,12 +2401,21 @@ monitor_rebal() {
   while :; do
     rows=$(load_ops) || { warn "Falha consultando gv\$asm_operation."; return 1; }
     if [[ -z $rows ]]; then ok "Nenhuma operação em andamento no $DG — rebalance concluído."; break; fi
+    # mostra só o que está RODANDO (ou com erro); WAIT/DONE das outras instâncias viram um resumo de uma linha
+    local nrun=0 resumo="" pct
     while IFS='|' read -r inst op st pw sofar work rate em ec pass; do
       [[ -n $inst ]] || continue
-      printf '  %s inst=%s %s/%s pass=%s power=%s %s/%s AU (%s AU/min) est=%s min\n' \
-        "$(ts)" "$inst" "$op" "$st" "$pass" "$pw" "$sofar" "$work" "$rate" "$em"
+      if [[ $st == RUN || $st == ERRS ]]; then
+        nrun=$((nrun+1)); pct=""
+        is_uint "$sofar" && is_uint "$work" && (( work > 0 )) && pct=" $(( sofar * 100 / work ))%"
+        printf '  %s inst=%s %s %s pass=%s power=%s %s/%s AU%s (%s AU/min) faltam ~%s min\n' \
+          "$(ts)" "$inst" "$op" "$st" "$pass" "$pw" "$sofar" "$work" "$pct" "$rate" "$em"
+      fi
       [[ $ec != - && -n $ec ]] && err "Rebalance com erro na instância $inst: $ec (veja o alert log do ASM)."
     done <<<"$rows"
+    resumo=$(awk -F'|' '$3!="RUN" && $3!="ERRS" && $10!="" {c[$10"/"$3]++} END{for (k in c) printf "%s ", k}' <<<"$rows")
+    (( nrun > 0 )) || printf '  %s nenhuma passagem rodando agora (aguardando a próxima)\n' "$(ts)"
+    [[ -n $resumo ]] && printf '  %s   demais passagens: %s\n' "$(ts)" "$resumo"
     if (( WAIT_TIMEOUT > 0 && $(epoch) - start >= WAIT_TIMEOUT*60 )); then
       warn "Tempo de acompanhamento esgotado (${WAIT_TIMEOUT} min). O rebalance continua no ASM."; break
     fi
@@ -2158,6 +2464,8 @@ select inst_id, operation, state, power, sofar, est_work, est_rate, est_minutes,
 from gv\$asm_operation where group_number = $DG_NUM;
 SQL
 )"
+  [[ $DG_TYPE != EXTERN && $DG_USABLE =~ ^- ]] && warn "usable_file_mb NEGATIVO (${DG_USABLE}MB): o $DG não aguenta perder um disco e refazer o espelho."
+  return 0
 }
 
 do_scan() {
@@ -2171,9 +2479,10 @@ do_scan() {
         [[ $t == disk || $t == mpath ]] || continue
         in="/dev/$k"; [[ $t == mpath ]] && in="/dev/mapper/$(cat "/sys/class/block/$k/dm/name" 2>/dev/null)"
         linux_dev_check "$in"
+        (( CK_MB > 0 )) || CK_MB=$(( $(blockdev --getsize64 "$in" 2>/dev/null || echo 0) / 1048576 ))
         if [[ -n $CK_FAIL ]]; then printf '  %-26s %-6s %10s  EM USO/INAPTO: %s\n' "$in" "$t" "${CK_MB:-?}" "$CK_FAIL"
-        else printf '  %-26s %-6s %10s  %sLIVRE%s %s\n' "$in" "$t" "$CK_MB" "$C_G" "$C_0" "${CK_BYID%% *}"; fi
-      done < <(lsblk -nlo KNAME,TYPE 2>/dev/null | awk '$2=="disk"||$2=="mpath"' | sort -u) ;;
+        else printf '  %-26s %-6s %10s  %sLIVRE%s %s\n' "$in" "$t" "$CK_MB" "$C_G" "$C_0" "$(ident_curta)"; fi
+      done < <(lsblk -nlo KNAME,TYPE 2>/dev/null | awk '($2=="disk"||$2=="mpath") && $1 !~ /^asm\// && $1 != "ofsctl" && $1 != "oksctl"' | sort -u) ;;
     AIX)
       for k in $(lsdev -Cc disk -F name 2>/dev/null); do
         aix_dev_check "$k"
@@ -2227,6 +2536,198 @@ do_set_power() {
   sql_query "$stmt" >/dev/null || die "Falha ao alterar o power." 3
   ok "Power alterado para $SET_POWER."
   sleep 3; ops=$(load_ops); [[ -n $ops ]] && printf '%s\n' "$ops" | sed 's/^/        /'
+}
+
+#------------------------------------------------------------------------------
+# VALIDAÇÕES DE CLUSTER E ESPAÇO (inspiradas em rac-status.sh e asmdu.sh, de Fred Denis)
+#------------------------------------------------------------------------------
+CRS_RAW=""; CRS_BAD=0; CRS_BAD_ASM=0; CRS_RESTART=0; CRS_TOTAL=0; CRS_DISABLED=0; DU_UNIT="G"
+# awk com locale UTF-8 quando existir: a largura do printf passa a contar caracteres (ç, ã) e não bytes
+UAWK=(awk); locale -a 2>/dev/null | grep -qiE '^c\.utf-?8$' && UAWK=(env LC_ALL=C.UTF-8 awk)
+
+# Recursos do Clusterware, uma linha por recurso/instância:
+#   seção|nome curto|nó|STATE|TARGET|detalhe|epoch do último restart|enabled
+crs_collect() {
+  local crs="$GRID_HOME/bin/crsctl" dis
+  [[ -x $crs ]] || return 1
+  dis=$(as_grid "'$crs' stat res -p -attr NAME,ENABLED" 2>/dev/null | awk -F= '/^NAME=/{n=$2} /^ENABLED=/{if ($2=="0") print n}' | tr '\n' ' ')
+  as_grid "'$crs' stat res -v -attr NAME,TYPE,LAST_SERVER,STATE,TARGET,STATE_DETAILS,LAST_RESTART" 2>/dev/null | grep -v '^CRS-' |
+  awk -F= -v dis=" $dis " '
+    function sec(t) {
+      if (t=="ora.database.type") return "1 Bancos"
+      if (t=="ora.pdb.type") return "2 PDBs"
+      if (t=="ora.service.type") return "3 Serviços"
+      if (t ~ /listener/) return "4 Listeners"
+      if (t ~ /^ora\.(asm|diskgroup|asm_network|acfs|volume)/) return "5 ASM"
+      if (t ~ /(vip|network|ons)/) return "6 Rede"
+      return "7 Outros"
+    }
+    function ep(s,   a, b) { if (split(s, a, /[\/ :]/) < 6) return 0; return mktime(a[3]" "a[1]" "a[2]" "a[4]" "a[5]" "a[6]) }
+    function flush(   short) {
+      if (n == "") return
+      short = n; sub(/\(ora\.[^)]*\)$/, "", short)   # 12.2+: ora.DATA.dg(ora.asmgroup) -> ora.DATA.dg
+      sub(/^ora\./, "", short); if (short ~ /\./) sub(/\.[^.]*$/, "", short)
+      sub(/,.*/, "", d); sub(/^HOME$/, "", d)
+      printf "%s|%s|%s|%s|%s|%s|%d|%s\n", sec(t), short, (s == "" ? "-" : s), st, tg, d, ep(lr), (index(dis, " " n " ") ? 0 : 1)
+      n = t = s = st = tg = d = lr = ""
+    }
+    /^NAME=/ { flush(); n = $2; next }
+    /^TYPE=/ { t = $2 } /^LAST_SERVER=/ { s = $2 } /^STATE=/ { st = $2; sub(/ .*/, "", st) } /^TARGET=/ { tg = $2 }
+    /^STATE_DETAILS=/ { d = $0; sub(/^STATE_DETAILS=/, "", d) }
+    /^LAST_RESTART=/ { lr = $0; sub(/^LAST_RESTART=/, "", lr) }
+    END { flush() }' | sort -t'|' -k1,1 -k2,2 -k3,3
+}
+
+# Tabela estilo rac-status: uma linha por recurso, uma coluna por nó.
+#   verde = ONLINE/Open | azul "-" = OFFLINE de propósito (TARGET OFFLINE) | vermelho "!" = STATE ≠ TARGET
+#   vermelho "x" = desabilitado | amarelo "*" = reiniciou nas últimas 24 h
+rac_status_report() {  # $1=1 imprime a tabela; sempre preenche CRS_RAW/CRS_BAD/...
+  local show=${1:-1} nodes now
+  CRS_RAW=$(crs_collect) || { warn "crsctl indisponível: validação do Clusterware pulada."; return 0; }
+  [[ -n $CRS_RAW ]] || { warn "crsctl não retornou recursos: validação do Clusterware pulada."; return 0; }
+  nodes=$(IFS=' '; echo "${NODES[*]:-$LOCAL_NODE}"); now=$(epoch)
+  # divergente = STATE ≠ TARGET (ou desabilitado mas com TARGET ONLINE); desabilitado e OFFLINE/OFFLINE é intencional
+  read -r CRS_TOTAL CRS_BAD CRS_BAD_ASM CRS_RESTART CRS_DISABLED <<<"$(awk -F'|' -v now="$now" '
+    { tot++; bad = ($4 != $5) || ($8=="0" && $5!="OFFLINE")
+      if (bad) { nb++; if ($1 ~ /ASM/) na++ }
+      if ($8 == "0") nd++
+      if ($7 > 0 && now - $7 < 86400) nr++ }
+    END { printf "%d %d %d %d %d\n", tot, nb, na, nr, nd }' <<<"$CRS_RAW")"
+  (( show )) || return 0
+  local cl ver
+  cl=$(as_grid "'$GRID_HOME/bin/olsnodes' -c" 2>/dev/null | head -1)
+  ver=$(as_grid "'$GRID_HOME/bin/crsctl' query crs activeversion -f" 2>/dev/null | head -1)
+  printf '  Cluster %s%s%s | %s\n' "$C_W" "${cl:-?}" "$C_0" "$(sed -E 's/.*active version on the cluster is \[([^]]*)\].*upgrade state is \[([^]]*)\].*/versão \1, upgrade state \2/' <<<"$ver")"
+  "${UAWK[@]}" -F'|' -v nodes="$nodes" -v now="$now" -v G="$C_G" -v R="$C_R" -v Y="$C_Y" -v B="$C_B" -v W="$C_W" -v Z="$C_0" '
+    BEGIN { nn = split(nodes, N, " ") }
+    {
+      key = $1 SUBSEP $2; if (!(key in seen)) { seen[key] = 1; ord[++nk] = key }
+      cell = ($4 == "ONLINE") ? ($6 != "" ? $6 : "Online") : ($4 == "OFFLINE" && $5 == "OFFLINE" ? "-" : $4)
+      col = G; ruim = 0   # marca própria: com --no-color todas as cores são "" e não dá para comparar cores
+      if (cell == "-") col = B
+      else if ($4 != $5 || $4 == "INTERMEDIATE") { col = R; ruim = 1; cell = cell "!" }
+      if ($8 == "0") { cell = "x " cell; if ($5 != "OFFLINE") { col = R; ruim = 1 } }
+      if ($7 > 0 && now - $7 < 86400 && !ruim && cell != "-") { col = Y; cell = cell "*" }
+      c[key, $3] = sprintf("%s%-13.13s%s", col, cell, Z)
+      if ($3 == "-" && ruim) orfa[key] = orfa[key] " " cell
+    }
+    END {
+      last = ""
+      for (i = 1; i <= nk; i++) {
+        split(ord[i], k, SUBSEP)
+        if (k[1] != last) {
+          last = k[1]; s = k[1]; sub(/^[0-9] /, "", s)
+          printf "\n  %s%-34s", W, s; for (j = 1; j <= nn; j++) printf " %-13s", N[j]; printf "%s\n", Z
+          printf "  %s", "----------------------------------"; for (j = 1; j <= nn; j++) printf " %s", "-------------"; printf "\n"
+        }
+        printf "  %-34.34s", k[2]
+        for (j = 1; j <= nn; j++) { v = ((ord[i], N[j]) in c) ? c[ord[i], N[j]] : sprintf("%s%-13s%s", B, "-", Z); printf " %s", v }
+        if (ord[i] in orfa) printf "  (sem nó:%s)", orfa[ord[i]]
+        printf "\n"
+      }
+    }' <<<"$CRS_RAW"
+  printf '\n  Legenda: %sOpen/Online%s  %s-%s offline de propósito  %s!%s STATE≠TARGET  %sx%s desabilitado  %s*%s reiniciou < 24 h\n' \
+    "$C_G" "$C_0" "$C_B" "$C_0" "$C_R" "$C_0" "$C_R" "$C_0" "$C_Y" "$C_0"
+  printf '  Recursos: %s | divergentes: %s (ASM/diskgroups: %s) | desabilitados: %s | reiniciados < 24 h: %s\n' \
+    "$CRS_TOTAL" "$CRS_BAD" "$CRS_BAD_ASM" "$CRS_DISABLED" "$CRS_RESTART"
+}
+
+crs_problems() {  # lista os divergentes (STATE ≠ TARGET, ou desabilitado com TARGET ONLINE)
+  "${UAWK[@]}" -F'|' '($4 != $5) || ($8=="0" && $5!="OFFLINE") {
+    s = $1; sub(/^[0-9] /, "", s)
+    printf "      %-10s %-30s nó=%-12s STATE=%s TARGET=%s%s\n", s, $2, $3, $4, $5, ($8=="0" ? " (DESABILITADO)" : "") }' <<<"$CRS_RAW"
+}
+
+crs_snapshot_file() { echo "$LOG_DIR/asm_add_disk_brabo_${DG:-NODG}_${RUN_TS}_crs_$1.txt"; }
+
+crs_precheck() {
+  section "Validação do Clusterware (estilo rac-status)"
+  rac_status_report 0
+  [[ -n $CRS_RAW ]] || return 0
+  printf '%s\n' "$CRS_RAW" > "$(crs_snapshot_file antes)" 2>/dev/null
+  if (( CRS_BAD == 0 )); then
+    ok "Clusterware: $CRS_TOTAL recursos, nenhum com STATE≠TARGET; $CRS_RESTART reiniciado(s) nas últimas 24 h. (tabela completa: --rac-status)"
+  else
+    warn "Clusterware: $CRS_BAD recurso(s) com STATE≠TARGET ou desabilitado(s) ANTES da mudança:"
+    crs_problems
+    (( CRS_BAD_ASM == 0 || ALLOW_UNHEALTHY )) || die "Há recursos de ASM/diskgroup fora do estado esperado. Resolva antes (ou --allow-unhealthy-dg)."
+  fi
+  info "Foto do Clusterware (antes): $(crs_snapshot_file antes)"
+}
+
+crs_postcheck() {
+  section "Clusterware depois da mudança (comparação com a foto de antes)"
+  local antes; antes=$(crs_snapshot_file antes)
+  [[ -r $antes ]] || { warn "Sem foto de antes: comparação pulada."; return 0; }
+  rac_status_report 0
+  printf '%s\n' "$CRS_RAW" > "$(crs_snapshot_file depois)" 2>/dev/null
+  local diff
+  diff=$("${UAWK[@]}" -F'|' 'NR==FNR { a[$1 FS $2 FS $3] = $4 "/" $5 "|" $7; next }
+    { k = $1 FS $2 FS $3; now = $4 "/" $5 "|" $7; split(now, n, "|")
+      s = $1; sub(/^[0-9] /, "", s)
+      if (!(k in a)) printf "      NOVO       %-10s %-30s nó=%s %s\n", s, $2, $3, n[1]
+      else { split(a[k], o, "|"); if (o[1] != n[1]) printf "      MUDOU      %-10s %-30s nó=%s %s -> %s\n", s, $2, $3, o[1], n[1]
+             else if (o[2] != n[2] && n[2] > 0) printf "      REINICIOU  %-10s %-30s nó=%s\n", s, $2, $3 }
+      delete a[k] }
+    END { for (k in a) { split(k, x, FS); s = x[1]; sub(/^[0-9] /, "", s); printf "      SUMIU      %-10s %-30s nó=%s\n", s, x[2], x[3] } }' \
+    FS='|' "$antes" FS='|' <(printf '%s\n' "$CRS_RAW"))
+  if [[ -z $diff ]]; then ok "Clusterware: nenhum recurso mudou de estado, sumiu ou reiniciou durante a mudança."
+  else warn "Clusterware: diferenças entre antes e depois:"; printf '%s\n' "$diff"; fi
+  (( CRS_BAD == 0 )) || { warn "$CRS_BAD recurso(s) com STATE≠TARGET agora:"; crs_problems; }
+  info "Foto do Clusterware (depois): $(crs_snapshot_file depois)"
+}
+
+# Espaço por diskgroup estilo asmdu: total e utilizável já descontado o espelho, reserva para refazer o espelho.
+#   utilizável = usable_file_mb = (free_mb - required_mirror_free_mb) / redundância ; %livre = utilizável / total espelhado
+du_fmt() {  # MB -> unidade escolhida
+  awk -v v="$1" -v u="$DU_UNIT" 'BEGIN{ if (u=="M") printf "%.0f", v; else if (u=="T") printf "%.2f", v/1048576; else printf "%.1f", v/1024 }'
+}
+asmdu_table() {  # $1 = DG (vazio = todos)
+  local rows filt=""
+  [[ -n ${1:-} ]] && filt=" where g.name = '$1'"
+  rows=$(sql_query "select g.name||'|'||g.type||'|'||g.total_mb||'|'||g.free_mb||'|'||g.required_mirror_free_mb||'|'||g.usable_file_mb||'|'||g.offline_disks||'|'||g.voting_files||'|'||(select count(*) from v\$asm_disk d where d.group_number=g.group_number)||'|'||(select count(*) from gv\$asm_operation o where o.group_number=g.group_number and o.state='RUN') from v\$asm_diskgroup g${filt} order by g.name;") || { warn "Falha lendo v\$asm_diskgroup."; return 0; }
+  printf '  %-10s %-7s %10s %10s %10s %11s %7s  %-22s %5s %5s %6s\n' "DiskGroup" "Redund." "Total $DU_UNIT" "Livre $DU_UNIT" "Reserva $DU_UNIT" "Utiliz. $DU_UNIT" "%Livre" "uso (espelhado)" "Disc." "Rebal" "Voting"
+  printf '  %s\n' "-----------------------------------------------------------------------------------------------------------------"
+  local nm ty tot fr req us off vot nd rb red tm pct col bar used i
+  while IFS='|' read -r nm ty tot fr req us off vot nd rb; do
+    [[ -n $nm ]] || continue
+    # roda também DEPOIS do ALTER: linha inesperada vira aviso, nunca aborta o script
+    if ! is_uint "$tot" || ! is_uint "$fr" || ! is_uint "$req" || [[ ! $us =~ ^-?[0-9]+$ ]]; then
+      warn "Linha inesperada de v\$asm_diskgroup ignorada: $nm|$ty|$tot|$fr|$req|$us"; continue
+    fi
+    case $ty in HIGH) red=3 ;; NORMAL|FLEX|EXTEND) red=2 ;; *) red=1 ;; esac
+    tm=$(( tot / red ))
+    pct=$(awk -v u="$us" -v t="$tm" 'BEGIN{ if (t<=0) print 0; else { p=u*100/t; if (p<0) p=0; printf "%d", p } }')
+    if [[ $us == -* ]] || (( pct < 10 )); then col=$C_R; elif (( pct < 25 )); then col=$C_Y; else col=$C_G; fi
+    used=$(( 100 - pct )); bar=""
+    for ((i=0; i<20; i++)); do (( i * 5 < used )) && bar+="#" || bar+="."; done
+    printf '  %-10s %-7s %10s %10s %10s %s%11s %6s%%%s  [%s] %5s %5s %6s\n' "$nm" "$ty" "$(du_fmt "$tm")" "$(du_fmt "$(( fr / red ))")" \
+      "$(du_fmt "$(( req / red ))")" "$col" "$(du_fmt "$us")" "$pct" "$C_0" "$bar" "$nd" "$([[ $rb != 0 ]] && echo SIM || echo -)" "$vot"
+    [[ $off != 0 ]] && warn "$nm: $off disco(s) OFFLINE."
+    [[ $us == -* ]] && warn "$nm: utilizável NEGATIVO — não há espaço para refazer o espelho se um disco falhar."
+  done <<<"$rows"
+}
+
+asmdu_dirs() {  # $1 = DG  $2 = subdiretório (opcional) — uso por diretório via asmcmd du (pode ser lento)
+  local base="+$1${2:+/$2}" list d line used raw red ty totraw
+  [[ $base =~ ^\+[A-Za-z0-9_./$#-]+$ ]] || die "Diretório ASM inválido: $base"
+  ty=$(sql_query "select type||'|'||total_mb from v\$asm_diskgroup where name='$1';") || return 0
+  totraw=${ty#*|}; ty=${ty%|*}
+  case $ty in HIGH) red=3 ;; NORMAL|FLEX|EXTEND) red=2 ;; *) red=1 ;; esac
+  section "Uso por diretório em $base (asmcmd du)"
+  list=$(as_grid "'$GRID_HOME/bin/asmcmd' ls '$base'" 2>&1) || die "asmcmd ls $base falhou: $list"
+  printf '  %-40s %12s %14s %7s\n' "Diretório" "Usado $DU_UNIT" "Bruto $DU_UNIT" "% DG"
+  printf '  %s\n' "-----------------------------------------------------------------------------"
+  while read -r d; do
+    [[ $d == */ ]] || continue
+    [[ $d =~ ^[A-Za-z0-9_.$#-]+/$ ]] || continue
+    line=$(as_grid "'$GRID_HOME/bin/asmcmd' du '$base/${d%/}'" 2>/dev/null | tail -1)
+    read -r used raw <<<"$line"
+    is_uint "$used" || continue
+    printf '  %-40s %12s %14s %6s%%\n' "${d%/}" "$(du_fmt "$used")" "$(du_fmt "$raw")" \
+      "$(awk -v r="$raw" -v t="$totraw" 'BEGIN{ printf "%.1f", (t>0 ? r*100/t : 0) }')"
+  done <<<"$list" | sort -k3,3nr
+  info "Usado = sem espelho; Bruto = com espelho (×$red no $ty); % DG = bruto / total bruto do diskgroup."
 }
 
 #------------------------------------------------------------------------------
@@ -2481,12 +2982,15 @@ flow_add() {
   detect_grid
   detect_cluster
   [[ $ACTION == add-only ]] && REMOTE_MODE="none" || setup_remote
+  [[ $OS == Linux ]] && ORACLEASM_BIN=$(command -v oracleasm 2>/dev/null || true)
   load_dg
   check_dg_health
+  crs_precheck
+  section "Espaço do $DG antes (estilo asmdu)"
+  asmdu_table "$DG"
   [[ $OS == Linux ]] && load_afd_map
   load_all_asm_disks
   detect_method
-  if [[ $OS == Linux && -z $ORACLEASM_BIN ]]; then ORACLEASM_BIN=$(command -v oracleasm 2>/dev/null || true); fi
   prepare_method
   collect_asm_majmins
   if [[ $ACTION == add-only ]]; then
@@ -2498,6 +3002,7 @@ flow_add() {
   gen_labels_and_names
   resolve_failgroups
   resolve_power
+  resolve_asm_size
   decide_partition
   print_plan
 
@@ -2516,7 +3021,11 @@ flow_add() {
   fi
 
   section "CONFIRMAÇÃO"
-  echo "  Esta operação vai alterar o storage e o diskgroup $DG em $(hostname)."
+  if [[ $ACTION == provision-only ]]; then
+    echo "  Esta operação vai particionar/rotular os discos em $(hostname) (o diskgroup $DG NÃO é alterado; só confirme o nome)."
+  else
+    echo "  Esta operação vai alterar o storage e o diskgroup $DG em $(hostname)."
+  fi
   confirm_typed "$DG" "  Digite o nome do diskgroup ($DG): "
   confirm_typed "${#N_IN[@]}" "  Digite a quantidade de discos (${#N_IN[@]}): "
 
@@ -2529,8 +3038,10 @@ flow_add() {
     UNDO=()
     snapshot "depois"
     section "PROVISIONAMENTO CONCLUÍDO"
-    echo "  Discos prontos (não adicionados). Para adicionar:"
-    printf '    %s -g %s --add-only -d %s -p <N> --execute\n' "$0" "$DG" "$(IFS=,; echo "${N_LABEL[*]}")"
+    echo "  Discos prontos e visíveis em todas as instâncias ASM (NÃO adicionados a nenhum diskgroup): $(IFS=,; echo "${N_ASMPATH[*]}")"
+    echo "  O -g $DG serviu de referência (tamanho, partição, labels). Para adicionar a um diskgroup quando for a hora:"
+    printf '    %s -g <DISKGROUP> --add-only -d %s -p <N> --execute\n' "$0" "$(IFS=,; echo "${N_LABEL[*]}")"
+    echo "  Ou use os discos num CREATE DISKGROUP (caminhos acima)."
     return 0
   fi
 
@@ -2538,6 +3049,10 @@ flow_add() {
   post_verify
   (( MON_WAIT )) && monitor_rebal
   snapshot "depois"
+  crs_postcheck
+  section "Espaço do $DG depois (estilo asmdu)"
+  asmdu_table "$DG"
+  (( MON_WAIT )) || info "O rebalance ainda pode estar rodando: o utilizável final aparece depois dele (--monitor / --asmdu -g $DG)."
 
   section "CONCLUÍDO"
   echo "  Discos adicionados ao $DG: ${N_NAME[*]}"
@@ -2569,22 +3084,33 @@ main() {
 
   case $ACTION in
     add|provision-only|add-only) flow_add ;;
-    status)    detect_grid; load_dg; show_status ;;
+    status)    detect_grid; load_dg; load_dg_disks; show_status
+               section "Espaço (estilo asmdu)"; asmdu_table "$DG" ;;
+    rac-status) detect_grid; detect_cluster
+               section "Recursos do Clusterware (estilo rac-status)"; rac_status_report 1
+               (( CRS_BAD == 0 )) || { printf '\n'; warn "Divergentes:"; crs_problems; } ;;
+    asmdu)     detect_grid
+               section "Espaço por diskgroup (estilo asmdu)"; asmdu_table "$DG"
+               [[ -z $DG ]] || asmdu_dirs "$DG" "$DU_DIR" ;;
     monitor)   detect_grid; load_dg; monitor_rebal ;;
     set-power) detect_grid; load_dg; do_set_power ;;
     scan)      require_root
+               [[ $OS == Linux ]] && ORACLEASM_BIN=$(command -v oracleasm 2>/dev/null || true)
                if ps -eo args 2>/dev/null | grep -q '^asm_pmon_+ASM'; then detect_grid; [[ $OS == Linux ]] && load_afd_map; load_all_asm_disks; collect_asm_majmins
                else warn "ASM não está no ar: o scan não consegue cruzar com os discos do ASM."; fi
-               [[ $OS == Linux ]] && ORACLEASM_BIN=$(command -v oracleasm 2>/dev/null || true)
                do_scan ;;
     rescan)    (( EXECUTE )) || warn "--rescan sem --execute: só mostra os comandos."
-               if ps -eo args 2>/dev/null | grep -q '^asm_pmon_+ASM'; then detect_grid; detect_cluster; setup_remote; [[ $OS == Linux ]] && load_afd_map; load_all_asm_disks; collect_asm_majmins; fi
                [[ $OS == Linux ]] && ORACLEASM_BIN=$(command -v oracleasm 2>/dev/null || true)
+               if ps -eo args 2>/dev/null | grep -q '^asm_pmon_+ASM'; then detect_grid; detect_cluster; setup_remote; [[ $OS == Linux ]] && load_afd_map; load_all_asm_disks; collect_asm_majmins; fi
                do_rescan ;;
   esac
   return 0
 }
 
+# "exit" no MESMO bloco do main: o bash já leu o if inteiro antes de executar, então nunca volta a ler o arquivo.
+# Sem isso, se o arquivo for trocado durante a execução (deploy de versão nova), o bash continua lendo o arquivo
+# novo do byte em que parou e dá "syntax error" no fim (aconteceu em 10/11/2026, depois do ADD do DATA07).
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
   main "$@"
+  exit $?
 fi

@@ -53,8 +53,13 @@ disco() {
 byid() { ln -sfn "../../$2" "/dev/disk/by-id/$1"; }
 
 asmlib_label() {  # label kname
-  mkdir -p /dev/oracleasm/disks; local mm; mm=$(dev_campo "$2" 3)
+  local mm; mm=$(dev_campo "$2" 3)
   echo "$1|$2" >> "$M/asmlib.tsv"
+  if [[ -n ${ASMLIB_V3:-} ]]; then   # v3: sem /dev/oracleasm/disks; device com o dono do iofilter
+    dev_set "$2" 9 "TYPE=oracleasm;LABEL=$1"; mkdir -p /dev/disk/by-label; ln -sfn "../../$2" "/dev/disk/by-label/$1"
+    chown grid:asmdba "/dev/$2"; chmod 660 "/dev/$2"; return 0
+  fi
+  mkdir -p /dev/oracleasm/disks
   mknod "/dev/oracleasm/disks/$1" b "${mm%:*}" "${mm#*:}"; chown grid:asmadmin "/dev/oracleasm/disks/$1"; chmod 660 "/dev/oracleasm/disks/$1"
 }
 

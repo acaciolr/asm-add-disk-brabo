@@ -4,6 +4,9 @@
 dev=""; for a; do [[ $a == /dev/* ]] && dev=$a; done
 k=$(kname_de "$dev"); dev_existe "$k" || { echo "Error: Could not stat device $dev" >&2; exit 1; }
 dev_set "$k" 8 gpt
+# PTUUID estável (derivado do nome) para a saída ser reproduzível
+u=$(printf '%s' "ptuuid-$k" | md5sum | cut -c1-32); u="${u:0:8}-${u:8:4}-${u:12:4}-${u:16:4}-${u:20:12}"
+s=$(dev_campo "$k" 9); [[ $s == *PTUUID=* ]] || dev_set "$k" 9 "PTUUID=$u${s:+;$s}"
 [[ $(dev_campo "$k" 2) == mpath ]] && exit 0      # no multipath quem cria o mapa da partição é o kpartx
 [[ $k =~ [0-9]$ ]] && p=${k}p1 || p=${k}1
 dev_existe "$p" && exit 0

@@ -5,39 +5,51 @@
   | | | |  _ \ / _ \   |  _ \| |_) |  / _ \ |  _ \| | | |
   | |_| | |_) / ___ \  | |_) |  _ <  / ___ \| |_) | |_| |
   |____/|____/_/   \_\ |____/|_| \_\/_/   \_\____/ \___/
-  [1mASM ADD DISK BRABO[0m v1.1.0 (2026-11-10) — adição segura de discos no Oracle ASM
+  [1mASM ADD DISK BRABO[0m v1.3.1 (2026-11-11) — adição segura de discos no Oracle ASM
   by • DBA BRABO — dbabrabo.com.br
 
-2026-11-10 22:00:00 [1;34m[INFO][0m Ação=add | modo=EXECUTE | host=racdb01 | usuário=root | SO=Linux
-2026-11-10 22:00:00 [1;34m[INFO][0m Linha de comando: ./asm_add_disk_brabo.sh -g DATA -d /dev/sdt -p 4 --remote ssh --wait --execute --yes
+2026-11-10 22:00:01 [1;34m[INFO][0m Ação=add | modo=EXECUTE | host=racdb01 | usuário=root | SO=Linux
+2026-11-10 22:00:01 [1;34m[INFO][0m Linha de comando: ./asm_add_disk_brabo.sh -g DATA -d /dev/sdt -p 4 --remote ssh --wait --execute --yes
 
 [1m==[ Ambiente Grid / ASM ]==[0m
-2026-11-10 22:00:00 [1;32m[ OK ][0m ASM: SID=+ASM1 versão=19.0.0.0.0 instâncias=2
-2026-11-10 22:00:00 [1;34m[INFO][0m Grid: user=grid home=/u01/app/19.0.0/grid base=/u01/app/grid
-2026-11-10 22:00:00 [1;34m[INFO][0m asm_power_limit=1 | asm_diskstring=ORCL:*
-2026-11-10 22:00:00 [1;32m[ OK ][0m Cluster: RAC com 2 nós (racdb01 racdb02) | local=racdb01
-2026-11-10 22:00:00 [1;32m[ OK ][0m Execução remota: ssh (nós: racdb02)
+2026-11-10 22:00:01 [1;32m[ OK ][0m ASM: SID=+ASM1 versão=19.0.0.0.0 instâncias=2
+2026-11-10 22:00:01 [1;34m[INFO][0m Grid: user=grid home=/u01/app/19.0.0/grid base=/u01/app/grid
+2026-11-10 22:00:01 [1;34m[INFO][0m asm_power_limit=1 | asm_diskstring=ORCL:*
+2026-11-10 22:00:01 [1;32m[ OK ][0m Cluster: RAC com 2 nós (racdb01 racdb02) | local=racdb01
+2026-11-10 22:00:01 [1;32m[ OK ][0m Execução remota: ssh (nós: racdb02)
 
 [1m==[ Diskgroup DATA ]==[0m
 2026-11-10 22:00:01 [1;32m[ OK ][0m DG=DATA tipo=EXTERN estado=MOUNTED discos=16 total=8388576MB livre=1449984MB usable=1449984MB
-2026-11-10 22:00:01 [1;34m[INFO][0m AU=4MB setor=512 compatible.asm=19.0.0.0.0 | tamanho de referência dos discos: 524286MB
+2026-11-10 22:00:01 [1;34m[INFO][0m AU=4MB setor=512 compatible.asm=19.0.0.0.0 | discos: mais comum 524286MB, faixa 524286-524286MB
+
+[1m==[ Validação do Clusterware (estilo rac-status) ]==[0m
+2026-11-10 22:00:01 [1;32m[ OK ][0m Clusterware: 24 recursos, nenhum com STATE≠TARGET; 0 reiniciado(s) nas últimas 24 h. (tabela completa: --rac-status)
+2026-11-10 22:00:01 [1;34m[INFO][0m Foto do Clusterware (antes): /var/log/dbabrabo/asm_add_disk_brabo_DATA_20261110_220000_crs_antes.txt
+
+[1m==[ Espaço do DATA antes (estilo asmdu) ]==[0m
+  DiskGroup  Redund.    Total G    Livre G  Reserva G   Utiliz. G  %Livre  uso (espelhado)        Disc. Rebal Voting
+  -----------------------------------------------------------------------------------------------------------------
+  DATA       EXTERN      8192.0     1416.0        0.0 [1;33m     1416.0     17%[0m  [#################...]    16     -      N
 
 [1m==[ Método de provisionamento ]==[0m
 2026-11-10 22:00:01 [1;32m[ OK ][0m Método: asmlib | estilo de caminho: orcl
-2026-11-10 22:00:03 [1;34m[INFO][0m Discos atuais: particionados=16 inteiros=0 | tabela=gpt
+2026-11-10 22:00:01 [1;34m[INFO][0m Permissão de referência dos discos ASMLib: grid:asmadmin:660 (de /dev/oracleasm/disks/DSK_DATA_01) — ASMLib v2: o driver cuida da permissão
+2026-11-10 22:00:01 [1;34m[INFO][0m Devices do ASM/ASMLib/AFD protegidos (maj:min): 51
+2026-11-10 22:00:04 [1;34m[INFO][0m Discos atuais: particionados=16 inteiros=0 | tabela=gpt
 
 [1m==[ Validação dos discos (1) ]==[0m
-2026-11-10 22:00:03 [1;32m[ OK ][0m /dev/sdt -> /dev/sdt (disk, 524288MB, setor 512) by-id: scsi-36000c29f1111111e8d2c41b9a7f03e5
-2026-11-10 22:00:03 [1;32m[ OK ][0m [racdb02] /dev/sdt visível como /dev/sdt e limpo
+2026-11-10 22:00:05 [1;32m[ OK ][0m /dev/sdt -> /dev/sdt (disk, 524288MB, setor 512) by-id: scsi-36000c29f1111111e8d2c41b9a7f03e5
+2026-11-10 22:00:05 [1;32m[ OK ][0m [racdb02] /dev/sdt visível como /dev/sdt, mesmo tamanho e limpo
 
 [1m==[ Labels e nomes ASM ]==[0m
-2026-11-10 22:00:03 [1;34m[INFO][0m Padrão de label: prefixo='DSK_DATA_' padding=2 maior número em uso=16 → DSK_DATA_17
-2026-11-10 22:00:03 [1;34m[INFO][0m Convenção do DG: nome ASM = label
-2026-11-10 22:00:03 [1;32m[ OK ][0m Disco 1: label=DSK_DATA_17 nome=DSK_DATA_17 caminho=ORCL:DSK_DATA_17
+2026-11-10 22:00:05 [1;34m[INFO][0m Padrão de label: prefixo='DSK_DATA_' padding=2 maior número em uso=16 → DSK_DATA_17
+2026-11-10 22:00:05 [1;34m[INFO][0m Convenção do DG: nome ASM = label
+2026-11-10 22:00:05 [1;32m[ OK ][0m Disco 1: label=DSK_DATA_17 nome=DSK_DATA_17 caminho=ORCL:DSK_DATA_17
 
 [1m==[ Failgroups / Sites / Rebalance ]==[0m
-2026-11-10 22:00:03 [1;34m[INFO][0m Rebalance: power=4 | acompanhar=sim
-2026-11-10 22:00:03 [1;34m[INFO][0m Particionamento: yes (tabela gpt, início 1MiB)
+2026-11-10 22:00:05 [1;34m[INFO][0m Rebalance: power=4 | acompanhar=sim
+2026-11-10 22:00:05 [1;34m[INFO][0m Cláusula SIZE: não usada (compatible.asm 19.0.0.0.0 < 23: o ASM aceita discos de tamanhos diferentes).
+2026-11-10 22:00:05 [1;34m[INFO][0m Particionamento: yes (tabela gpt, início 1MiB)
 
 [1m==[ PLANO DE EXECUÇÃO ]==[0m
   Host/Nó    : racdb01 (racdb01) | SO=Linux | modo=EXECUTE
@@ -63,26 +75,30 @@
 
 [1m==[ CONFIRMAÇÃO ]==[0m
   Esta operação vai alterar o storage e o diskgroup DATA em racdb01.
-2026-11-10 22:00:03 [1;33m[WARN][0m Confirmação dispensada por --yes.
-2026-11-10 22:00:03 [1;33m[WARN][0m Confirmação dispensada por --yes.
-2026-11-10 22:00:04 [1;34m[INFO][0m Snapshot (antes): /var/log/dbabrabo/asm_add_disk_brabo_DATA_20261110_220000_snap_antes.txt
+2026-11-10 22:00:05 [1;33m[WARN][0m Confirmação dispensada por --yes.
+2026-11-10 22:00:05 [1;33m[WARN][0m Confirmação dispensada por --yes.
+2026-11-10 22:00:06 [1;34m[INFO][0m Snapshot (antes): /var/log/dbabrabo/asm_add_disk_brabo_DATA_20261110_220000_snap_antes.txt
 
 [1m==[ Provisionando 1/1: /dev/sdt -> DSK_DATA_17 ]==[0m
-2026-11-10 22:00:04 [1;34m[INFO][0m EXEC: parted -s -a optimal /dev/sdt mklabel gpt mkpart primary 1MiB 100% 
-2026-11-10 22:00:04 [1;34m[INFO][0m EXEC: partprobe /dev/sdt 
-2026-11-10 22:00:04 [1;34m[INFO][0m EXEC: udevadm settle 
-2026-11-10 22:00:04 [1;32m[ OK ][0m Partição criada: /dev/sdt1
-2026-11-10 22:00:04 [1;34m[INFO][0m EXEC [racdb02]: partprobe /dev/sdt && udevadm settle
-2026-11-10 22:00:04 [1;34m[INFO][0m EXEC: /usr/sbin/oracleasm createdisk DSK_DATA_17 /dev/sdt1 
+2026-11-10 22:00:06 [1;34m[INFO][0m EXEC: parted -s -a optimal /dev/sdt mklabel gpt mkpart primary 1MiB 100% 
+2026-11-10 22:00:06 [1;34m[INFO][0m EXEC: partprobe /dev/sdt 
+2026-11-10 22:00:06 [1;34m[INFO][0m EXEC: udevadm settle 
+2026-11-10 22:00:06 [1;32m[ OK ][0m Partição criada: /dev/sdt1 (PTUUID 19f6f6f6-f1ea-11db-2e39-c97585cee6a9)
+2026-11-10 22:00:06 [1;34m[INFO][0m EXEC [racdb02]: ( D='/dev/sdt'; [ -b "$D" ] || { echo 'ERRO: disco /dev/sdt não localizado neste nó'; exit 1; }; [ "$(blockdev --getsize64 $D)" = '549755813888' ] || { echo "ERRO: $D tem tamanho diferente de /dev/sdt"; exit 1; }; [ "$(blkid -p -o value -s PTUUID $D)" = '19f6f6f6-f1ea-11db-2e39-c97585cee6a9' ] || { echo "ERRO: PTUUID de $D difere — NÃO é o disco particionado no racdb01"; exit 1; }; partprobe $D && udevadm settle && lsblk $D )
+NAME       MAJ:MIN    TYPE       SIZE       MOUNTPOINT
+sdt        65:48      disk       512G
+sdt1       65:49      part       512.0G
+2026-11-10 22:00:06 [1;34m[INFO][0m EXEC: /usr/sbin/oracleasm createdisk DSK_DATA_17 /dev/sdt1 
 Writing disk header: done
 Instantiating disk: done
 Disk "DSK_DATA_17" is a valid ASM disk
 /dev/sdt1: LABEL="DSK_DATA_17" TYPE="oracleasm"
-2026-11-10 22:00:04 [1;34m[INFO][0m EXEC: /usr/sbin/oracleasm scandisks 
+2026-11-10 22:00:06 [1;34m[INFO][0m EXEC: /usr/sbin/oracleasm scandisks 
 Reloading disk partitions: done
 Cleaning any stale ASM disks...
 Scanning system for ASM disks...
-2026-11-10 22:00:04 [1;34m[INFO][0m EXEC [racdb02]: /usr/sbin/oracleasm scandisks && /usr/sbin/oracleasm querydisk -p DSK_DATA_17
+2026-11-10 22:00:06 [1;34m[INFO][0m EXEC: sh -c true 
+2026-11-10 22:00:06 [1;34m[INFO][0m EXEC [racdb02]: ( /usr/sbin/oracleasm scandisks && /usr/sbin/oracleasm querydisk -p DSK_DATA_17 && true )
 Reloading disk partitions: done
 Cleaning any stale ASM disks...
 Scanning system for ASM disks...
@@ -90,94 +106,103 @@ Disk "DSK_DATA_17" is a valid ASM disk
 /dev/sdt1: LABEL="DSK_DATA_17" TYPE="oracleasm"
 
 [1m==[ Descoberta pelo ASM em TODAS as instâncias ]==[0m
-2026-11-10 22:00:04 [1;32m[ OK ][0m Todos os discos descobertos em 2 instância(s).
+2026-11-10 22:00:07 [1;32m[ OK ][0m Todos os discos descobertos em 2 instância(s).
 
 [1m==[ ALTER DISKGROUP DATA ]==[0m
     ALTER DISKGROUP DATA ADD
       DISK
         'ORCL:DSK_DATA_17' NAME DSK_DATA_17
       REBALANCE POWER 4 NOWAIT;
-2026-11-10 22:00:04 [1;32m[ OK ][0m ALTER DISKGROUP DATA ADD executado.
+2026-11-10 22:00:07 [1;32m[ OK ][0m ALTER DISKGROUP DATA ADD executado.
 
 [1m==[ Verificação pós-ADD ]==[0m
-2026-11-10 22:00:04 [1;32m[ OK ][0m DSK_DATA_17 ORCL:DSK_DATA_17 MEMBER/ONLINE/NORMAL fg=DSK_DATA_17 524286MB
+2026-11-10 22:00:07 [1;32m[ OK ][0m DSK_DATA_17 ORCL:DSK_DATA_17 MEMBER/ONLINE/NORMAL fg=DSK_DATA_17 524286MB
 
 [1m==[ Rebalance do DATA (Ctrl+C sai do monitor; o rebalance NÃO é afetado) ]==[0m
-  2026-11-10 22:00:05 inst=1 REBAL/RUN pass=REBALANCE power=4 30/65535 AU (1800 AU/min) est=37 min
-  2026-11-10 22:00:35 inst=1 REBAL/RUN pass=REBALANCE power=4 930/65535 AU (1800 AU/min) est=36 min
-  2026-11-10 22:01:05 inst=1 REBAL/RUN pass=REBALANCE power=4 1830/65535 AU (1800 AU/min) est=36 min
-  2026-11-10 22:01:35 inst=1 REBAL/RUN pass=REBALANCE power=4 2730/65535 AU (1800 AU/min) est=35 min
-  2026-11-10 22:02:05 inst=1 REBAL/RUN pass=REBALANCE power=4 3630/65535 AU (1800 AU/min) est=35 min
-  2026-11-10 22:02:35 inst=1 REBAL/RUN pass=REBALANCE power=4 4530/65535 AU (1800 AU/min) est=34 min
-  2026-11-10 22:03:05 inst=1 REBAL/RUN pass=REBALANCE power=4 5430/65535 AU (1800 AU/min) est=34 min
-  2026-11-10 22:03:35 inst=1 REBAL/RUN pass=REBALANCE power=4 6330/65535 AU (1800 AU/min) est=33 min
-  2026-11-10 22:04:05 inst=1 REBAL/RUN pass=REBALANCE power=4 7230/65535 AU (1800 AU/min) est=33 min
-  2026-11-10 22:04:35 inst=1 REBAL/RUN pass=REBALANCE power=4 8130/65535 AU (1800 AU/min) est=32 min
-  2026-11-10 22:05:05 inst=1 REBAL/RUN pass=REBALANCE power=4 9030/65535 AU (1800 AU/min) est=32 min
-  2026-11-10 22:05:35 inst=1 REBAL/RUN pass=REBALANCE power=4 9930/65535 AU (1800 AU/min) est=31 min
-  2026-11-10 22:06:05 inst=1 REBAL/RUN pass=REBALANCE power=4 10830/65535 AU (1800 AU/min) est=31 min
-  2026-11-10 22:06:35 inst=1 REBAL/RUN pass=REBALANCE power=4 11730/65535 AU (1800 AU/min) est=30 min
-  2026-11-10 22:07:05 inst=1 REBAL/RUN pass=REBALANCE power=4 12630/65535 AU (1800 AU/min) est=30 min
-  2026-11-10 22:07:35 inst=1 REBAL/RUN pass=REBALANCE power=4 13530/65535 AU (1800 AU/min) est=29 min
-  2026-11-10 22:08:05 inst=1 REBAL/RUN pass=REBALANCE power=4 14430/65535 AU (1800 AU/min) est=29 min
-  2026-11-10 22:08:35 inst=1 REBAL/RUN pass=REBALANCE power=4 15330/65535 AU (1800 AU/min) est=28 min
-  2026-11-10 22:09:05 inst=1 REBAL/RUN pass=REBALANCE power=4 16230/65535 AU (1800 AU/min) est=28 min
-  2026-11-10 22:09:35 inst=1 REBAL/RUN pass=REBALANCE power=4 17130/65535 AU (1800 AU/min) est=27 min
-  2026-11-10 22:10:05 inst=1 REBAL/RUN pass=REBALANCE power=4 18030/65535 AU (1800 AU/min) est=27 min
-  2026-11-10 22:10:35 inst=1 REBAL/RUN pass=REBALANCE power=4 18930/65535 AU (1800 AU/min) est=26 min
-  2026-11-10 22:11:05 inst=1 REBAL/RUN pass=REBALANCE power=4 19830/65535 AU (1800 AU/min) est=26 min
-  2026-11-10 22:11:36 inst=1 REBAL/RUN pass=REBALANCE power=4 20760/65535 AU (1800 AU/min) est=25 min
-  2026-11-10 22:12:06 inst=1 REBAL/RUN pass=REBALANCE power=4 21660/65535 AU (1800 AU/min) est=25 min
-  2026-11-10 22:12:36 inst=1 REBAL/RUN pass=REBALANCE power=4 22560/65535 AU (1800 AU/min) est=24 min
-  2026-11-10 22:13:06 inst=1 REBAL/RUN pass=REBALANCE power=4 23460/65535 AU (1800 AU/min) est=24 min
-  2026-11-10 22:13:36 inst=1 REBAL/RUN pass=REBALANCE power=4 24360/65535 AU (1800 AU/min) est=23 min
-  2026-11-10 22:14:06 inst=1 REBAL/RUN pass=REBALANCE power=4 25260/65535 AU (1800 AU/min) est=23 min
-  2026-11-10 22:14:36 inst=1 REBAL/RUN pass=REBALANCE power=4 26160/65535 AU (1800 AU/min) est=22 min
-  2026-11-10 22:15:06 inst=1 REBAL/RUN pass=REBALANCE power=4 27060/65535 AU (1800 AU/min) est=22 min
-  2026-11-10 22:15:36 inst=1 REBAL/RUN pass=REBALANCE power=4 27960/65535 AU (1800 AU/min) est=21 min
-  2026-11-10 22:16:06 inst=1 REBAL/RUN pass=REBALANCE power=4 28860/65535 AU (1800 AU/min) est=21 min
-  2026-11-10 22:16:36 inst=1 REBAL/RUN pass=REBALANCE power=4 29760/65535 AU (1800 AU/min) est=20 min
-  2026-11-10 22:17:06 inst=1 REBAL/RUN pass=REBALANCE power=4 30660/65535 AU (1800 AU/min) est=20 min
-  2026-11-10 22:17:36 inst=1 REBAL/RUN pass=REBALANCE power=4 31560/65535 AU (1800 AU/min) est=19 min
-  2026-11-10 22:18:06 inst=1 REBAL/RUN pass=REBALANCE power=4 32460/65535 AU (1800 AU/min) est=19 min
-  2026-11-10 22:18:36 inst=1 REBAL/RUN pass=REBALANCE power=4 33360/65535 AU (1800 AU/min) est=18 min
-  2026-11-10 22:19:06 inst=1 REBAL/RUN pass=REBALANCE power=4 34260/65535 AU (1800 AU/min) est=18 min
-  2026-11-10 22:19:36 inst=1 REBAL/RUN pass=REBALANCE power=4 35160/65535 AU (1800 AU/min) est=17 min
-  2026-11-10 22:20:06 inst=1 REBAL/RUN pass=REBALANCE power=4 36060/65535 AU (1800 AU/min) est=17 min
-  2026-11-10 22:20:36 inst=1 REBAL/RUN pass=REBALANCE power=4 36960/65535 AU (1800 AU/min) est=16 min
-  2026-11-10 22:21:06 inst=1 REBAL/RUN pass=REBALANCE power=4 37860/65535 AU (1800 AU/min) est=16 min
-  2026-11-10 22:21:36 inst=1 REBAL/RUN pass=REBALANCE power=4 38760/65535 AU (1800 AU/min) est=15 min
-  2026-11-10 22:22:06 inst=1 REBAL/RUN pass=REBALANCE power=4 39660/65535 AU (1800 AU/min) est=15 min
-  2026-11-10 22:22:37 inst=1 REBAL/RUN pass=REBALANCE power=4 40590/65535 AU (1800 AU/min) est=14 min
-  2026-11-10 22:23:07 inst=1 REBAL/RUN pass=REBALANCE power=4 41490/65535 AU (1800 AU/min) est=14 min
-  2026-11-10 22:23:37 inst=1 REBAL/RUN pass=REBALANCE power=4 42390/65535 AU (1800 AU/min) est=13 min
-  2026-11-10 22:24:07 inst=1 REBAL/RUN pass=REBALANCE power=4 43290/65535 AU (1800 AU/min) est=13 min
-  2026-11-10 22:24:37 inst=1 REBAL/RUN pass=REBALANCE power=4 44190/65535 AU (1800 AU/min) est=12 min
-  2026-11-10 22:25:07 inst=1 REBAL/RUN pass=REBALANCE power=4 45090/65535 AU (1800 AU/min) est=12 min
-  2026-11-10 22:25:37 inst=1 REBAL/RUN pass=REBALANCE power=4 45990/65535 AU (1800 AU/min) est=11 min
-  2026-11-10 22:26:07 inst=1 REBAL/RUN pass=REBALANCE power=4 46890/65535 AU (1800 AU/min) est=11 min
-  2026-11-10 22:26:37 inst=1 REBAL/RUN pass=REBALANCE power=4 47790/65535 AU (1800 AU/min) est=10 min
-  2026-11-10 22:27:07 inst=1 REBAL/RUN pass=REBALANCE power=4 48690/65535 AU (1800 AU/min) est=10 min
-  2026-11-10 22:27:37 inst=1 REBAL/RUN pass=REBALANCE power=4 49590/65535 AU (1800 AU/min) est=9 min
-  2026-11-10 22:28:07 inst=1 REBAL/RUN pass=REBALANCE power=4 50490/65535 AU (1800 AU/min) est=9 min
-  2026-11-10 22:28:37 inst=1 REBAL/RUN pass=REBALANCE power=4 51390/65535 AU (1800 AU/min) est=8 min
-  2026-11-10 22:29:07 inst=1 REBAL/RUN pass=REBALANCE power=4 52290/65535 AU (1800 AU/min) est=8 min
-  2026-11-10 22:29:37 inst=1 REBAL/RUN pass=REBALANCE power=4 53190/65535 AU (1800 AU/min) est=7 min
-  2026-11-10 22:30:07 inst=1 REBAL/RUN pass=REBALANCE power=4 54090/65535 AU (1800 AU/min) est=7 min
-  2026-11-10 22:30:37 inst=1 REBAL/RUN pass=REBALANCE power=4 54990/65535 AU (1800 AU/min) est=6 min
-  2026-11-10 22:31:07 inst=1 REBAL/RUN pass=REBALANCE power=4 55890/65535 AU (1800 AU/min) est=6 min
-  2026-11-10 22:31:37 inst=1 REBAL/RUN pass=REBALANCE power=4 56790/65535 AU (1800 AU/min) est=5 min
-  2026-11-10 22:32:07 inst=1 REBAL/RUN pass=REBALANCE power=4 57690/65535 AU (1800 AU/min) est=5 min
-  2026-11-10 22:32:37 inst=1 REBAL/RUN pass=REBALANCE power=4 58590/65535 AU (1800 AU/min) est=4 min
-  2026-11-10 22:33:07 inst=1 REBAL/RUN pass=REBALANCE power=4 59490/65535 AU (1800 AU/min) est=4 min
-  2026-11-10 22:33:37 inst=1 REBAL/RUN pass=REBALANCE power=4 60390/65535 AU (1800 AU/min) est=3 min
-  2026-11-10 22:34:07 inst=1 REBAL/RUN pass=COMPACT power=4 61290/65535 AU (1800 AU/min) est=3 min
-  2026-11-10 22:34:38 inst=1 REBAL/RUN pass=COMPACT power=4 62190/65535 AU (1800 AU/min) est=2 min
-  2026-11-10 22:35:08 inst=1 REBAL/RUN pass=COMPACT power=4 63120/65535 AU (1800 AU/min) est=2 min
-  2026-11-10 22:35:38 inst=1 REBAL/RUN pass=COMPACT power=4 64020/65535 AU (1800 AU/min) est=1 min
-  2026-11-10 22:36:08 inst=1 REBAL/RUN pass=COMPACT power=4 64920/65535 AU (1800 AU/min) est=1 min
-2026-11-10 22:36:38 [1;32m[ OK ][0m Nenhuma operação em andamento no DATA — rebalance concluído.
-2026-11-10 22:36:39 [1;34m[INFO][0m Snapshot (depois): /var/log/dbabrabo/asm_add_disk_brabo_DATA_20261110_220000_snap_depois.txt
+  2026-11-10 22:00:07 inst=1 REBAL RUN pass=REBALANCE power=4 0/65535 AU 0% (1800 AU/min) faltam ~37 min
+  2026-11-10 22:00:37 inst=1 REBAL RUN pass=REBALANCE power=4 900/65535 AU 1% (1800 AU/min) faltam ~36 min
+  2026-11-10 22:01:07 inst=1 REBAL RUN pass=REBALANCE power=4 1800/65535 AU 2% (1800 AU/min) faltam ~36 min
+  2026-11-10 22:01:37 inst=1 REBAL RUN pass=REBALANCE power=4 2700/65535 AU 4% (1800 AU/min) faltam ~35 min
+  2026-11-10 22:02:07 inst=1 REBAL RUN pass=REBALANCE power=4 3600/65535 AU 5% (1800 AU/min) faltam ~35 min
+  2026-11-10 22:02:37 inst=1 REBAL RUN pass=REBALANCE power=4 4500/65535 AU 6% (1800 AU/min) faltam ~34 min
+  2026-11-10 22:03:07 inst=1 REBAL RUN pass=REBALANCE power=4 5400/65535 AU 8% (1800 AU/min) faltam ~34 min
+  2026-11-10 22:03:37 inst=1 REBAL RUN pass=REBALANCE power=4 6300/65535 AU 9% (1800 AU/min) faltam ~33 min
+  2026-11-10 22:04:07 inst=1 REBAL RUN pass=REBALANCE power=4 7200/65535 AU 10% (1800 AU/min) faltam ~33 min
+  2026-11-10 22:04:37 inst=1 REBAL RUN pass=REBALANCE power=4 8100/65535 AU 12% (1800 AU/min) faltam ~32 min
+  2026-11-10 22:05:07 inst=1 REBAL RUN pass=REBALANCE power=4 9000/65535 AU 13% (1800 AU/min) faltam ~32 min
+  2026-11-10 22:05:37 inst=1 REBAL RUN pass=REBALANCE power=4 9900/65535 AU 15% (1800 AU/min) faltam ~31 min
+  2026-11-10 22:06:08 inst=1 REBAL RUN pass=REBALANCE power=4 10830/65535 AU 16% (1800 AU/min) faltam ~31 min
+  2026-11-10 22:06:38 inst=1 REBAL RUN pass=REBALANCE power=4 11730/65535 AU 17% (1800 AU/min) faltam ~30 min
+  2026-11-10 22:07:08 inst=1 REBAL RUN pass=REBALANCE power=4 12630/65535 AU 19% (1800 AU/min) faltam ~30 min
+  2026-11-10 22:07:38 inst=1 REBAL RUN pass=REBALANCE power=4 13530/65535 AU 20% (1800 AU/min) faltam ~29 min
+  2026-11-10 22:08:08 inst=1 REBAL RUN pass=REBALANCE power=4 14430/65535 AU 22% (1800 AU/min) faltam ~29 min
+  2026-11-10 22:08:38 inst=1 REBAL RUN pass=REBALANCE power=4 15330/65535 AU 23% (1800 AU/min) faltam ~28 min
+  2026-11-10 22:09:08 inst=1 REBAL RUN pass=REBALANCE power=4 16230/65535 AU 24% (1800 AU/min) faltam ~28 min
+  2026-11-10 22:09:38 inst=1 REBAL RUN pass=REBALANCE power=4 17130/65535 AU 26% (1800 AU/min) faltam ~27 min
+  2026-11-10 22:10:08 inst=1 REBAL RUN pass=REBALANCE power=4 18030/65535 AU 27% (1800 AU/min) faltam ~27 min
+  2026-11-10 22:10:38 inst=1 REBAL RUN pass=REBALANCE power=4 18930/65535 AU 28% (1800 AU/min) faltam ~26 min
+  2026-11-10 22:11:08 inst=1 REBAL RUN pass=REBALANCE power=4 19830/65535 AU 30% (1800 AU/min) faltam ~26 min
+  2026-11-10 22:11:38 inst=1 REBAL RUN pass=REBALANCE power=4 20730/65535 AU 31% (1800 AU/min) faltam ~25 min
+  2026-11-10 22:12:08 inst=1 REBAL RUN pass=REBALANCE power=4 21630/65535 AU 33% (1800 AU/min) faltam ~25 min
+  2026-11-10 22:12:38 inst=1 REBAL RUN pass=REBALANCE power=4 22530/65535 AU 34% (1800 AU/min) faltam ~24 min
+  2026-11-10 22:13:08 inst=1 REBAL RUN pass=REBALANCE power=4 23430/65535 AU 35% (1800 AU/min) faltam ~24 min
+  2026-11-10 22:13:39 inst=1 REBAL RUN pass=REBALANCE power=4 24330/65535 AU 37% (1800 AU/min) faltam ~23 min
+  2026-11-10 22:14:09 inst=1 REBAL RUN pass=REBALANCE power=4 25260/65535 AU 38% (1800 AU/min) faltam ~23 min
+  2026-11-10 22:14:39 inst=1 REBAL RUN pass=REBALANCE power=4 26160/65535 AU 39% (1800 AU/min) faltam ~22 min
+  2026-11-10 22:15:09 inst=1 REBAL RUN pass=REBALANCE power=4 27060/65535 AU 41% (1800 AU/min) faltam ~22 min
+  2026-11-10 22:15:39 inst=1 REBAL RUN pass=REBALANCE power=4 27960/65535 AU 42% (1800 AU/min) faltam ~21 min
+  2026-11-10 22:16:09 inst=1 REBAL RUN pass=REBALANCE power=4 28860/65535 AU 44% (1800 AU/min) faltam ~21 min
+  2026-11-10 22:16:39 inst=1 REBAL RUN pass=REBALANCE power=4 29760/65535 AU 45% (1800 AU/min) faltam ~20 min
+  2026-11-10 22:17:09 inst=1 REBAL RUN pass=REBALANCE power=4 30660/65535 AU 46% (1800 AU/min) faltam ~20 min
+  2026-11-10 22:17:39 inst=1 REBAL RUN pass=REBALANCE power=4 31560/65535 AU 48% (1800 AU/min) faltam ~19 min
+  2026-11-10 22:18:09 inst=1 REBAL RUN pass=REBALANCE power=4 32460/65535 AU 49% (1800 AU/min) faltam ~19 min
+  2026-11-10 22:18:39 inst=1 REBAL RUN pass=REBALANCE power=4 33360/65535 AU 50% (1800 AU/min) faltam ~18 min
+  2026-11-10 22:19:09 inst=1 REBAL RUN pass=REBALANCE power=4 34260/65535 AU 52% (1800 AU/min) faltam ~18 min
+  2026-11-10 22:19:39 inst=1 REBAL RUN pass=REBALANCE power=4 35160/65535 AU 53% (1800 AU/min) faltam ~17 min
+  2026-11-10 22:20:09 inst=1 REBAL RUN pass=REBALANCE power=4 36060/65535 AU 55% (1800 AU/min) faltam ~17 min
+  2026-11-10 22:20:39 inst=1 REBAL RUN pass=REBALANCE power=4 36960/65535 AU 56% (1800 AU/min) faltam ~16 min
+  2026-11-10 22:21:09 inst=1 REBAL RUN pass=REBALANCE power=4 37860/65535 AU 57% (1800 AU/min) faltam ~16 min
+  2026-11-10 22:21:40 inst=1 REBAL RUN pass=REBALANCE power=4 38790/65535 AU 59% (1800 AU/min) faltam ~15 min
+  2026-11-10 22:22:10 inst=1 REBAL RUN pass=REBALANCE power=4 39690/65535 AU 60% (1800 AU/min) faltam ~15 min
+  2026-11-10 22:22:40 inst=1 REBAL RUN pass=REBALANCE power=4 40590/65535 AU 61% (1800 AU/min) faltam ~14 min
+  2026-11-10 22:23:10 inst=1 REBAL RUN pass=REBALANCE power=4 41490/65535 AU 63% (1800 AU/min) faltam ~14 min
+  2026-11-10 22:23:40 inst=1 REBAL RUN pass=REBALANCE power=4 42390/65535 AU 64% (1800 AU/min) faltam ~13 min
+  2026-11-10 22:24:10 inst=1 REBAL RUN pass=REBALANCE power=4 43290/65535 AU 66% (1800 AU/min) faltam ~13 min
+  2026-11-10 22:24:40 inst=1 REBAL RUN pass=REBALANCE power=4 44190/65535 AU 67% (1800 AU/min) faltam ~12 min
+  2026-11-10 22:25:10 inst=1 REBAL RUN pass=REBALANCE power=4 45090/65535 AU 68% (1800 AU/min) faltam ~12 min
+  2026-11-10 22:25:40 inst=1 REBAL RUN pass=REBALANCE power=4 45990/65535 AU 70% (1800 AU/min) faltam ~11 min
+  2026-11-10 22:26:10 inst=1 REBAL RUN pass=REBALANCE power=4 46890/65535 AU 71% (1800 AU/min) faltam ~11 min
+  2026-11-10 22:26:40 inst=1 REBAL RUN pass=REBALANCE power=4 47790/65535 AU 72% (1800 AU/min) faltam ~10 min
+  2026-11-10 22:27:10 inst=1 REBAL RUN pass=REBALANCE power=4 48690/65535 AU 74% (1800 AU/min) faltam ~10 min
+  2026-11-10 22:27:40 inst=1 REBAL RUN pass=REBALANCE power=4 49590/65535 AU 75% (1800 AU/min) faltam ~9 min
+  2026-11-10 22:28:10 inst=1 REBAL RUN pass=REBALANCE power=4 50490/65535 AU 77% (1800 AU/min) faltam ~9 min
+  2026-11-10 22:28:40 inst=1 REBAL RUN pass=REBALANCE power=4 51390/65535 AU 78% (1800 AU/min) faltam ~8 min
+  2026-11-10 22:29:10 inst=1 REBAL RUN pass=REBALANCE power=4 52290/65535 AU 79% (1800 AU/min) faltam ~8 min
+  2026-11-10 22:29:40 inst=1 REBAL RUN pass=REBALANCE power=4 53190/65535 AU 81% (1800 AU/min) faltam ~7 min
+  2026-11-10 22:30:10 inst=1 REBAL RUN pass=REBALANCE power=4 54090/65535 AU 82% (1800 AU/min) faltam ~7 min
+  2026-11-10 22:30:41 inst=1 REBAL RUN pass=REBALANCE power=4 55020/65535 AU 83% (1800 AU/min) faltam ~6 min
+  2026-11-10 22:31:11 inst=1 REBAL RUN pass=REBALANCE power=4 55920/65535 AU 85% (1800 AU/min) faltam ~6 min
+  2026-11-10 22:31:41 inst=1 REBAL RUN pass=REBALANCE power=4 56820/65535 AU 86% (1800 AU/min) faltam ~5 min
+  2026-11-10 22:32:11 inst=1 REBAL RUN pass=REBALANCE power=4 57720/65535 AU 88% (1800 AU/min) faltam ~5 min
+  2026-11-10 22:32:41 inst=1 REBAL RUN pass=REBALANCE power=4 58620/65535 AU 89% (1800 AU/min) faltam ~4 min
+  2026-11-10 22:33:11 inst=1 REBAL RUN pass=REBALANCE power=4 59520/65535 AU 90% (1800 AU/min) faltam ~4 min
+  2026-11-10 22:33:41 inst=1 REBAL RUN pass=REBALANCE power=4 60420/65535 AU 92% (1800 AU/min) faltam ~3 min
+  2026-11-10 22:34:11 inst=1 REBAL RUN pass=COMPACT power=4 61320/65535 AU 93% (1800 AU/min) faltam ~3 min
+  2026-11-10 22:34:41 inst=1 REBAL RUN pass=COMPACT power=4 62220/65535 AU 94% (1800 AU/min) faltam ~2 min
+  2026-11-10 22:35:11 inst=1 REBAL RUN pass=COMPACT power=4 63120/65535 AU 96% (1800 AU/min) faltam ~2 min
+  2026-11-10 22:35:41 inst=1 REBAL RUN pass=COMPACT power=4 64020/65535 AU 97% (1800 AU/min) faltam ~1 min
+  2026-11-10 22:36:11 inst=1 REBAL RUN pass=COMPACT power=4 64920/65535 AU 99% (1800 AU/min) faltam ~1 min
+2026-11-10 22:36:41 [1;32m[ OK ][0m Nenhuma operação em andamento no DATA — rebalance concluído.
+2026-11-10 22:36:42 [1;34m[INFO][0m Snapshot (depois): /var/log/dbabrabo/asm_add_disk_brabo_DATA_20261110_220000_snap_depois.txt
+
+[1m==[ Clusterware depois da mudança (comparação com a foto de antes) ]==[0m
+2026-11-10 22:36:42 [1;32m[ OK ][0m Clusterware: nenhum recurso mudou de estado, sumiu ou reiniciou durante a mudança.
+2026-11-10 22:36:42 [1;34m[INFO][0m Foto do Clusterware (depois): /var/log/dbabrabo/asm_add_disk_brabo_DATA_20261110_220000_crs_depois.txt
+
+[1m==[ Espaço do DATA depois (estilo asmdu) ]==[0m
+  DiskGroup  Redund.    Total G    Livre G  Reserva G   Utiliz. G  %Livre  uso (espelhado)        Disc. Rebal Voting
+  -----------------------------------------------------------------------------------------------------------------
+  DATA       EXTERN      8704.0     1927.9        0.0 [1;33m     1927.9     22%[0m  [################....]    17     -      N
 
 [1m==[ CONCLUÍDO ]==[0m
   Discos adicionados ao DATA: DSK_DATA_17
@@ -185,7 +210,7 @@ Disk "DSK_DATA_17" is a valid ASM disk
   Status     : ./asm_add_disk_brabo.sh -g DATA --status
   Power      : ./asm_add_disk_brabo.sh -g DATA --set-power <N> --execute
   Reverter   : ALTER DISKGROUP DATA DROP DISK DSK_DATA_17 REBALANCE POWER <N>;  (só depois de avaliar espaço!)
-2026-11-10 22:36:39 [1;33m[WARN][0m Execução com 2 aviso(s) — revise o log.
+2026-11-10 22:36:42 [1;33m[WARN][0m Execução com 2 aviso(s) — revise o log.
 
   Log completo: /var/log/dbabrabo/asm_add_disk_brabo_DATA_add_20261110_220000.log
 

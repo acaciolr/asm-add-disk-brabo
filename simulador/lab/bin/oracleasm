@@ -19,8 +19,13 @@ case ${1:-} in
     fi ;;
   createdisk)
     k=$(kname_de "$3"); mm=$(dev_campo "$k" 3)
-    echo "$2|$k" >> "$L"; mkdir -p /dev/oracleasm/disks
-    mknod "/dev/oracleasm/disks/$2" b "${mm%:*}" "${mm#*:}"; chown grid:asmadmin "/dev/oracleasm/disks/$2"; chmod 660 "/dev/oracleasm/disks/$2"
+    echo "$2|$k" >> "$L"
+    if [[ -n ${ASMLIB_V3:-} ]]; then   # v3: assinatura + by-label; o iofilter (udev) ainda não ajustou a permissão
+      dev_set "$k" 9 "TYPE=oracleasm;LABEL=$2"; mkdir -p /dev/disk/by-label; ln -sfn "../../$k" "/dev/disk/by-label/$2"
+    else
+      mkdir -p /dev/oracleasm/disks
+      mknod "/dev/oracleasm/disks/$2" b "${mm%:*}" "${mm#*:}"; chown grid:asmadmin "/dev/oracleasm/disks/$2"; chmod 660 "/dev/oracleasm/disks/$2"
+    fi
     echo "Writing disk header: done"; echo "Instantiating disk: done" ;;
   deletedisk) awk -F'|' -v l="$2" '$1!=l' "$L" > "$L.t" && mv "$L.t" "$L"; rm -f "/dev/oracleasm/disks/$2"; echo "Clearing disk header: done"; echo "Dropping disk: done" ;;
   *) echo "Usage: oracleasm [--exec-path=<exec_path>] <command> [ <args> ]"; exit 1 ;;

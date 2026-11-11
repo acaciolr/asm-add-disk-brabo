@@ -5,11 +5,11 @@
   | | | |  _ \ / _ \   |  _ \| |_) |  / _ \ |  _ \| | | |
   | |_| | |_) / ___ \  | |_) |  _ <  / ___ \| |_) | |_| |
   |____/|____/_/   \_\ |____/|_| \_\/_/   \_\____/ \___/
-  ASM ADD DISK BRABO v1.1.0 (2026-11-10) — adição segura de discos no Oracle ASM
+  ASM ADD DISK BRABO v1.3.1 (2026-11-11) — adição segura de discos no Oracle ASM
   by • DBA BRABO — dbabrabo.com.br
 
-2026-11-10 22:00:01 [INFO] Ação=add | modo=EXECUTE | host=racdb01 | usuário=root | SO=Linux
-2026-11-10 22:00:01 [INFO] Linha de comando: ./asm_add_disk_brabo.sh -g DATA -d /dev/sdt --execute
+2026-11-10 22:00:00 [INFO] Ação=add | modo=EXECUTE | host=racdb01 | usuário=root | SO=Linux
+2026-11-10 22:00:00 [INFO] Linha de comando: ./asm_add_disk_brabo.sh -g DATA -d /dev/sdt --execute
 
 ==[ Ambiente Grid / ASM ]==
 2026-11-10 22:00:01 [ OK ] ASM: SID=+ASM1 versão=19.0.0.0.0 instâncias=2
@@ -20,24 +20,36 @@
 
 ==[ Diskgroup DATA ]==
 2026-11-10 22:00:01 [ OK ] DG=DATA tipo=EXTERN estado=MOUNTED discos=16 total=8388576MB livre=1449984MB usable=1449984MB
-2026-11-10 22:00:01 [INFO] AU=4MB setor=512 compatible.asm=19.0.0.0.0 | tamanho de referência dos discos: 524286MB
+2026-11-10 22:00:01 [INFO] AU=4MB setor=512 compatible.asm=19.0.0.0.0 | discos: mais comum 524286MB, faixa 524286-524286MB
+
+==[ Validação do Clusterware (estilo rac-status) ]==
+2026-11-10 22:00:01 [ OK ] Clusterware: 24 recursos, nenhum com STATE≠TARGET; 0 reiniciado(s) nas últimas 24 h. (tabela completa: --rac-status)
+2026-11-10 22:00:01 [INFO] Foto do Clusterware (antes): /var/log/dbabrabo/asm_add_disk_brabo_DATA_20261110_220000_crs_antes.txt
+
+==[ Espaço do DATA antes (estilo asmdu) ]==
+  DiskGroup  Redund.    Total G    Livre G  Reserva G   Utiliz. G  %Livre  uso (espelhado)        Disc. Rebal Voting
+  -----------------------------------------------------------------------------------------------------------------
+  DATA       EXTERN      8192.0     1416.0        0.0      1416.0     17%  [#################...]    16     -      N
 
 ==[ Método de provisionamento ]==
 2026-11-10 22:00:01 [ OK ] Método: asmlib | estilo de caminho: orcl
+2026-11-10 22:00:01 [INFO] Permissão de referência dos discos ASMLib: grid:asmadmin:660 (de /dev/oracleasm/disks/DSK_DATA_01) — ASMLib v2: o driver cuida da permissão
+2026-11-10 22:00:01 [INFO] Devices do ASM/ASMLib/AFD protegidos (maj:min): 51
 2026-11-10 22:00:03 [INFO] Discos atuais: particionados=16 inteiros=0 | tabela=gpt
 
 ==[ Validação dos discos (1) ]==
 2026-11-10 22:00:03 [ OK ] /dev/sdt -> /dev/sdt (disk, 524288MB, setor 512) by-id: scsi-36000c29f1111111e8d2c41b9a7f03e5
-2026-11-10 22:00:03 [ OK ] [racdb02] /dev/sdt visível como /dev/sdt e limpo
+2026-11-10 22:00:03 [ OK ] [racdb02] /dev/sdt visível como /dev/sdt, mesmo tamanho e limpo
 
 ==[ Labels e nomes ASM ]==
 2026-11-10 22:00:03 [INFO] Padrão de label: prefixo='DSK_DATA_' padding=2 maior número em uso=16 → DSK_DATA_17
-2026-11-10 22:00:03 [INFO] Convenção do DG: nome ASM = label
-2026-11-10 22:00:03 [ OK ] Disco 1: label=DSK_DATA_17 nome=DSK_DATA_17 caminho=ORCL:DSK_DATA_17
+2026-11-10 22:00:04 [INFO] Convenção do DG: nome ASM = label
+2026-11-10 22:00:04 [ OK ] Disco 1: label=DSK_DATA_17 nome=DSK_DATA_17 caminho=ORCL:DSK_DATA_17
 
 ==[ Failgroups / Sites / Rebalance ]==
-2026-11-10 22:00:03 [INFO] Rebalance: power=1 (asm_power_limit) | acompanhar=não
-2026-11-10 22:00:03 [INFO] Particionamento: yes (tabela gpt, início 1MiB)
+2026-11-10 22:00:04 [INFO] Rebalance: power=1 (asm_power_limit) | acompanhar=não
+2026-11-10 22:00:04 [INFO] Cláusula SIZE: não usada (compatible.asm 19.0.0.0.0 < 23: o ASM aceita discos de tamanhos diferentes).
+2026-11-10 22:00:04 [INFO] Particionamento: yes (tabela gpt, início 1MiB)
 
 ==[ PLANO DE EXECUÇÃO ]==
   Host/Nó    : racdb01 (racdb01) | SO=Linux | modo=EXECUTE
@@ -63,7 +75,7 @@
 
 ==[ CONFIRMAÇÃO ]==
   Esta operação vai alterar o storage e o diskgroup DATA em racdb01.
-2026-11-10 22:00:03 [ERRO] Sem terminal interativo para a confirmação. Use --yes (com MUITO cuidado).
+2026-11-10 22:00:04 [ERRO] Sem terminal interativo para a confirmação. Use --yes (com MUITO cuidado).
 
   Log completo: /var/log/dbabrabo/asm_add_disk_brabo_DATA_add_20261110_220000.log
 
